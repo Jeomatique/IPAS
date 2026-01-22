@@ -167,25 +167,7 @@
             { 
                 file: "IPAS", 
                 name: "IPAS", 
-                description: "Indice de potentialité d'accès à un espace vert saturant.", 
-                layer: null 
-            },
-            { 
-                file: "routes", 
-                name: "Routes", 
-                description: "Réseau routier principal (IGN).", 
-                layer: null 
-            },
-            { 
-                file: "quartier_admin_densite", 
-                name: "Densité par quartiers", 
-                description: "Densité de population par quartier administratif.", 
-                layer: null 
-            },
-            { 
-                file: "parcs", 
-                name: "Parcs", 
-                description: "Localisation des parcs et jardins publics.", 
+                description: "Indice de potentialité d'accès à un espace vert saturant.<br>Il s’agit à l’échelle d’un bâtiment de la moyenne pondéré pour tous les parcs de : la surface du parc multiplier par - sa pondération - le produit de l’inverse de la distance au parc avec sa population de proximité.<br>Lecture : Avec un écart-type inférieur à -1, cette espace à accès anormalement (relativement au reste de paris) à des petits parcs dans des quartier très dense. En bleu foncé, cette espace à accès anormalement à des grands parcs de proximité dans des quartiers peu dense.", 
                 layer: null 
             },
             { 
@@ -195,12 +177,30 @@
                 layer: null 
             },
             { 
+                file: "parcs", 
+                name: "Parcs", 
+                description: "Localisation des parcs et jardins publics.", 
+                layer: null 
+            },
+           { 
+                file: "quartier_admin_densite", 
+                name: "Densité par quartiers", 
+                description: "Densité de population par quartier administratif.", 
+                layer: null 
+            },
+            { 
                 file: "IRIS_PARIS_revenu", 
                 name: "Revenus (IRIS)", 
                 description: "Revenu disponible par unité de consommation.", 
                 layer: null 
             },
-                        { 
+            { 
+                file: "routes", 
+                name: "Routes", 
+                description: "Réseau routier principal (IGN).", 
+                layer: null 
+            },
+            { 
                 file: "batiment_pop", 
                 name: "Batiment", 
                 description: "Population estimé par bâtiment selon une proportionnalité de logement avec les IRIS (2022)", 
@@ -328,4 +328,5 @@
 </body>
 
 </html>
+
 
