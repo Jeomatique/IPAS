@@ -167,43 +167,43 @@
             { 
                 file: "IPAS", 
                 name: "IPAS", 
-                description: "Indice de potentialité d'accès à un espace vert saturant.<br>Il s’agit à l’échelle d’un bâtiment de la moyenne pondéré pour tous les parcs de : la surface du parc multiplier par - sa pondération - le produit de l’inverse de la distance au parc avec sa population de proximité.<br>Lecture : Avec un écart-type inférieur à -1, cette espace à accès anormalement (relativement au reste de paris) à des petits parcs dans des quartier très dense. En bleu foncé, cette espace à accès anormalement à des grands parcs de proximité dans des quartiers peu dense.", 
+                description: "Auteur : Julian JOAQUIM<br>Indice de potentialité d'accès à un espace vert saturant.<br>Il s’agit à l’échelle d’un bâtiment de la moyenne pondéré pour tous les parcs de : la surface du parc multiplier par - sa pondération - le produit de l’inverse de la distance au parc avec sa population de proximité.<br>Lecture : Avec un écart-type inférieur à -1, cette espace à accès anormalement (relativement au reste de paris) à des petits parcs dans des quartier très dense. En bleu foncé, cette espace à accès anormalement à des grands parcs de proximité dans des quartiers peu dense.<br>discrétisation : Écart-type", 
                 layer: null 
             },
             { 
                 file: "Seine", 
                 name: "Seine", 
-                description: "Tracé de la Seine.", 
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> — Tracé hydrographique de la Seine, élément structurant du paysage parisien.", 
                 layer: null 
             },
             { 
                 file: "parcs", 
                 name: "Parcs", 
-                description: "Localisation des parcs et jardins publics.", 
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> — Localisation des espaces verts publics, jardins et parcs urbains de la ville de Paris. Avec des ajouts, suppressions, et modifications manuel pour correspondre mieux à une réalité traitable pour l'indice.", 
                 layer: null 
             },
            { 
                 file: "quartier_admin_densite", 
                 name: "Densité par quartiers", 
-                description: "Densité de population par quartier administratif.", 
+                description: "<a href='https://opendata.paris.fr/explore/dataset/quartier_paris/' target='_blank'>Source : Open Data Paris</a> —<a href='https://www.insee.fr/fr/statistiques/1405815' target='_blank'>INSEE</a> — Représentation de la densité de population par quartier administratif (habitants/km², discrétisation : Effectif égaux)", 
                 layer: null 
             },
             { 
                 file: "IRIS_PARIS_revenu", 
                 name: "Revenus (IRIS)", 
-                description: "Revenu disponible par unité de consommation.", 
+                description: "<a href='https://www.insee.fr/fr/statistiques/8229323' target='_blank'>Source : INSEE</a> — Médiane du revenu disponible par unité de consommation à l'échelle fine des IRIS (INSEE). discrétisation : Effectif égaux", 
                 layer: null 
             },
             { 
                 file: "routes", 
                 name: "Routes", 
-                description: "Réseau routier principal (IGN).", 
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> — Réseau routier principal issu de la BD TOPO de l'IGN, utilisé pour le calcul des distances réelles (vitesse calculé selon le relief) de parcours.", 
                 layer: null 
             },
             { 
                 file: "batiment_pop", 
                 name: "Batiment", 
-                description: "Population estimé par bâtiment selon une proportionnalité de logement avec les IRIS (2022)", 
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> —<a href='https://www.insee.fr/fr/statistiques/8647014' target='_blank'>INSEE</a> — Estimation de la population par bâtiment selon les logements, croisée avec les données IRIS de l'INSEE.<br>discrétisation : Effectif égaux sans population égal à 0.", 
                 layer: null 
             }
         ];
@@ -328,5 +328,6 @@
 </body>
 
 </html>
+
 
 
