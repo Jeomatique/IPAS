@@ -74,7 +74,7 @@ updateMarker(latlng, d.features[0].properties.label);
 }
 }
 
-const baseURL = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/data/";
+const baseURL = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/";
 
 const layers = [
 { name:"IPAS", file:"IPAS.geojson", style:{ color:"#08306b", weight:1, fillOpacity:0.6 } },
@@ -109,3 +109,4 @@ map.hasLayer(l) ? map.removeLayer(l) : l.addTo(map);
 
 </body>
 </html>
+
