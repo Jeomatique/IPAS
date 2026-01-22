@@ -12,6 +12,7 @@
     <script src="quartier_admin_densite.js"></script>
     <script src="parcs.js"></script>
     <script src="Seine.js"></script>
+    <script src="batiment_pop.js"></script>
     <script src="IRIS_PARIS_revenu.js"></script>
     
     <style>
@@ -198,6 +199,12 @@
                 name: "Revenus (IRIS)", 
                 description: "Revenu disponible par unité de consommation.", 
                 layer: null 
+            },
+                        { 
+                file: "batiment_pop", 
+                name: "Batiment", 
+                description: "Population estimé par bâtiment selon une proportionnalité de logement avec les IRIS (2022)", 
+                layer: null 
             }
         ];
 
@@ -321,3 +328,4 @@
 </body>
 
 </html>
+
