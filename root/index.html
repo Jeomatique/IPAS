@@ -311,12 +311,13 @@
         }
 
         // Initialisation
-        const seineLayer = overlaysData.find(o => o.file === "Seine");
-        if(seineLayer) seineLayer.layer.addTo(map);
+        const premiereCouche = overlaysData.find(o => o.file === "IPAS");
+        if(premiereCouche) premiereCouche.layer.addTo(map);
         refreshLayers();
         
         console.log("🗺️ Carte initialisée");
         console.log("📊 Couches disponibles:", overlaysData.map(o => o.file));
     </script>
 </body>
+
 </html>
