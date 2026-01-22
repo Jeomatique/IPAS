@@ -1,114 +1,446 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-<meta charset="utf-8">
-<title>IPAS - Indice de Potentialité d'Espaces Verts</title>
+    <meta charset="utf-8" />
+    <title>IPAS - Indice de Potentialité d'Espaces Verts</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/proj4@2.9.1/dist/proj4.js"></script>
+    <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
+    <style>
+        /* CONFIGURATION GLOBALE */
+        html, body {
+            height: 100%; margin: 0; padding: 0;
+            overflow: hidden; font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        /* BANDEAU SUPÉRIEUR */
+        .header-banner {
+            height: 80px;
+            background: linear-gradient(135deg, #4169E1 0%, #2a47a3 100%);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative; z-index: 1100;
+        }
+        .header-banner h1 {
+            color: white; font-size: 1.2rem; text-align: center;
+            margin: 0; padding: 0 100px; text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .header-logo {
+            position: absolute; right: 20px; height: 50px;
+            background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px;
+        }
 
-<style>
-html, body { height:100%; margin:0; font-family:Segoe UI, Roboto, Arial, sans-serif; }
-#map { position:absolute; top:80px; bottom:50px; left:340px; right:0; }
-.header-banner { height:80px; background:#4169E1; color:white; display:flex; align-items:center; justify-content:center; }
-.header-banner h1 { font-size:1.1rem; text-align:center; margin:0 120px; }
-.header-logo { position:absolute; right:20px; height:50px; background:white; padding:5px; border-radius:5px; }
-#sidebar { position:absolute; top:80px; bottom:50px; left:0; width:340px; background:#f8f9fa; padding:20px; overflow-y:auto; }
-.layer-item { padding:10px; border-bottom:1px solid #ddd; }
-.layer-details { display:none; font-size:0.85rem; }
-.layer-details.active { display:block; }
-.footer-banner { height:50px; position:absolute; bottom:0; width:100%; background:#e9ecef; display:flex; justify-content:space-between; align-items:center; padding:0 20px; font-size:0.7rem; }
-</style>
+        /* PANNEAU LATÉRAL */
+        #sidebar {
+            position: absolute; top: 80px; bottom: 50px; left: 0;
+            width: 340px; background-color: #f8f9fa;
+            border-right: 1px solid #e0e0e0; z-index: 1050;
+            padding: 20px; box-sizing: border-box; overflow-y: auto;
+            text-align: justify;
+        }
+
+        /* BOITES MODERNES */
+        .modern-box {
+            background: white; padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            opacity: 0.7; transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        .modern-box:hover { opacity: 1; box-shadow: 0 8px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
+
+        /* GESTIONNAIRE DE COUCHES */
+        .layer-list-title { font-size: 1.1rem; color: #4169E1; font-weight: bold; margin: 20px 0 10px 5px; }
+        .layer-item {
+            padding: 12px 10px; border-bottom: 1px solid #eee;
+            transition: all 0.2s ease; cursor: grab; border-radius: 8px;
+        }
+        .layer-item:hover { background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transform: scale(1.02); z-index: 5; }
+        .layer-header { display: flex; align-items: center; justify-content: space-between; }
+        .layer-header label { cursor: pointer; display: flex; align-items: center; gap: 10px; flex: 1; font-size: 0.9rem; }
+
+        .layer-details { display: none; padding: 15px 5px 5px 30px; font-size: 0.85rem; color: #555; }
+        .layer-details.active { display: block; }
+
+        /* SLIDER SANS CONFLIT */
+        .opacity-slider-container { margin-bottom: 10px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: #4169E1; }
+
+        /* LA CARTE */
+        #map { position: absolute; top: 80px; bottom: 50px; left: 340px; right: 0; }
+
+        /* LÉGENDE */
+        .legend.modern-box { max-height: 250px; overflow-y: auto; background: rgba(255, 255, 255, 0.95); width: 220px; z-index: 1000; }
+
+        /* BANDEAU INFÉRIEUR */
+        .footer-banner {
+            height: 50px; background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            position: absolute; bottom: 0; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 25px; box-sizing: border-box; border-top: 1px solid #d1d1d1;
+            z-index: 1100; font-size: 0.7rem; color: #444;
+        }
+
+        /* OUTILS LEAFLET AJUSTÉS */
+        .leaflet-control-coords {
+            background: rgba(255,255,255,0.9); padding: 4px 8px; font-family: monospace;
+            border-radius: 4px; border: 1px solid #ccc; margin-right: 10px !important;
+        }
+        .btn-blue { width: 100%; padding: 10px; background-color: #4169E1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        #address-input { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .arrow { font-size: 0.7rem; color: #aaa; transition: transform 0.3s; cursor: pointer; }
+        .arrow.rotate { transform: rotate(180deg); color: #4169E1; }
+    </style>
 </head>
-
 <body>
 
-<header class="header-banner">
-<h1>Indice de potentialité de Paris d'espaces verts pondéré à la distance et à la qualité</h1>
-<img class="header-logo" src="https://lptm.cyu.fr/medias/photo/cy-cergy-paris-universite-coul_1611572232688-png">
-</header>
+    <header class="header-banner">
+        <h1>Indice de potentialité de Paris d'espaces verts pondéré à la distance et à la qualité d'espace disponible par personne.
+        <span style="display:block;">Une disparité spatiale nord-Est versus Ouest-sud.</span>
+        </h1>
+        <img src="https://lptm.cyu.fr/medias/photo/cy-cergy-paris-universite-coul_1611572232688-png" alt="Logo CYU" class="header-logo">
+    </header>
 
-<div id="sidebar">
-<h3>Recherche d'adresse</h3>
-<input id="address-input" style="width:100%; padding:8px">
-<button onclick="searchAddress()" style="width:100%; margin-top:8px">Chercher</button>
+    <div id="sidebar">
+        <div class="modern-box" style="margin-bottom: 30px;">
+            <h3 style="margin-top:0; font-size: 0.95rem; color: #4169E1;">Recherche d'adresse</h3>
+            <input type="text" id="address-input" placeholder="Ex: 10 rue de la Paix, Paris">
+            <button class="btn-blue" onclick="searchAddress()">Chercher</button>
+        </div>
 
-<h3 style="margin-top:20px">Couches</h3>
-<div id="layer-list"></div>
-</div>
+        <div style="padding: 0 5px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 8px; font-size: 1.1rem;">Résumé</h3>
+            <p style="font-size: 0.9rem; line-height: 1.5; color: #555;">
+              &nbsp;&nbsp;&nbsp;&nbsp;Notre composition cartographique présente l'IPAS ainsi que des cartes pour mettre en perspective une plausible corrélation entre l'IPAS avec le contraste socio-spatial Est-Ouest parisien. <br>&nbsp;&nbsp;&nbsp;&nbsp;Voir la méthodologie de l'IPAS dans son bandeau (voir ci-dessous)  
+            </p>
+        </div>
 
-<div id="map"></div>
+        <div class="layer-list-title">Couches de données</div>
+        <div id="layer-list-container"></div>
+    </div>
 
-<footer class="footer-banner">
-<div><strong>JOAQUIM Julian</strong> – <strong>GIRARD Paul</strong></div>
-<div>CY Cergy Paris Université – Master Géomatique</div>
-<div>Sources : IGN, INSEE, OpenData Paris</div>
-</footer>
+    <div id="map"></div>
 
-<script>
-const map = L.map('map').setView([48.8566, 2.3522], 12);
+    <footer class="footer-banner">
+        <div><strong>JOAQUIM Julian</strong> M1<br><strong>GIRARD Paul </strong> M1</div>
+        <div style="text-align: center;">CY Cergy Paris Université <br> Master Géomatique appliqué aux études urbaines et aux risques<br>21.01.2026</div>
+        <div style="text-align: right;"><strong>Source :</strong> (2022) IGN, INSEE, data iledefrance, opendata paris</div>
+    </footer>
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-attribution: '© OpenStreetMap'
-}).addTo(map);
+    <script>
+        /* 1. INITIALISATION CARTE */
+        //il faut définir la projection pour la carte et les coordonnées
+        // const en JS c'est une variable qui enregistre des adresses de contenu
+        // du coup on peut pas modifier après coup comme avec let ou en python
+        // ma_varaible = 2 ca c pas possible avec const
+        // new ca creer une nouvelle instance de projection pour Leaflet (L)
+        // le CRS ont l'a trouvé ici https://gist.github.com/blemoine/e6045ed93b3d90a52891?permalink_comment_id=3015607#gistcomment-3015607
+        // L.Prok.CRS on l'a trouvé ici : https://kartena.github.io/Proj4Leaflet/
+        const lambert93 = new L.Proj.CRS('EPSG:2154', '+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs');
+        //on prefere utiliser const que var map, car var c'est plus recommandé
+        const map = L.map('map', {
+            attributionControl: true // Important pour citer les sources
+        }).setView([48.857, 2.341], 12);
+        // même structure que votre code, 1 c'est le lien vers le fond de plan, 2 c'est les attributions qui apparaissent en bas à droite https://leafletjs.com/reference.html#tilelayer 
+        const baseLayers = {
+            "OpenStreetMap": L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map),
+            "ESRI Imagerie": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' }),
+            "ESRI Gris": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' })
+        };
+        // le control layer c'est le petit menu qui sert à basculer entre les couches, ici les fonds de plan
+        L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
 
-let currentMarker = null;
 
-function updateMarker(latlng, label) {
-if (currentMarker) map.removeLayer(currentMarker);
-currentMarker = L.marker(latlng).addTo(map).bindPopup(label).openPopup();
-}
+        /* 2. GESTION DES MARQUEURS */
+        //on a choisit pour les marqueurs :
+        // 1. placer un marqueur initial au point zero de paris
+        var marker = L.marker([48.85340407009002, 2.348788491757153]).addTo(map);
+        marker.bindPopup("Point zero de Paris").openPopup();
+        // 2. quand l'user clic sur la carte il place un marqueur avec les attribut de l'entité
+        // 3. La recherche d'adresse créer un marqueur
+        // 4. Donc si il y a déjà un marqueur il l'efface (if currentMarker est True alors il supprime) CurrentMarker si il vaut Null alors il vaut False en JS https://developer.mozilla.org/en-US/docs/Glossary/Falsy
+        let currentMarker = null;
+        function updateMarker(latlng, label) {
+            if (currentMarker) map.removeLayer(currentMarker);
+            map.removeLayer(marker);
+            currentMarker = L.marker(latlng).addTo(map).bindPopup(label).openPopup();
+        }
+        map.on('click', function(e) {
+            updateMarker(e.latlng, `Point sélectionné<br>Lat: ${e.latlng.lat.toFixed(4)}, Lon: ${e.latlng.lng.toFixed(4)}`);
+        });
 
-map.on('click', e => updateMarker(e.latlng, `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`));
+        /* 3. COUCHES WMS */
+        //on utilise L.tileLayer.wms pour appelé les données dans geoserver, mais avec une nuance, au lieu
+        // de ce fatiguer à écrire dans un dictionnaire (object en js) la liste
+        // pour plus de clarté on a mit une variable LayerName provenant de sa fonction
+        //aisi quand on appel createWMS on lui donne le layer de overlaysData
+        // on a remarqué qu'on avait pas besoin de préciser le style avec le wms
+        function createWms(layerName) {
+            return L.tileLayer.wms("http://localhost:8080/geoserver/IPAS/wms", {
+                layers: layerName, format: "image/png", transparent: true, version: "1.3.0"
+            });
+        }
 
-async function searchAddress() {
-const q = document.getElementById('address-input').value;
-if (!q) return;
-const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`);
-const d = await r.json();
-if (d.features.length) {
-const c = d.features[0].geometry.coordinates;
-const latlng = [c[1], c[0]];
-map.setView(latlng, 16);
-updateMarker(latlng, d.features[0].properties.label);
-}
-}
+        const overlaysData = [
+            {
+                name: "IPAS",
+                legende: "IPAS (écart-type)",
+                layer: createWms("IPAS:IPAS"),
+                description: `Acronyme : Indice de potentialité d’accès à un espace vert saturant.
+            Il s’agit, à l’échelle d’un bâtiment, de la moyenne pondérée pour tous les parcs de :
+            la surface du parc multipliée par sa pondération et par le produit de l’inverse de la distance au parc avec sa population de proximité.
+            <br><br>
+            Lecture : Avec un écart-type inférieur à -1, cet espace a un accès anormalement faible (relativement au reste de Paris) à des petits parcs dans des             quartiers très denses. 
+            En bleu foncé, cet espace a un accès anormalement élevé à des grands parcs de proximité dans des quartiers peu denses.`,
+            },
 
-const baseURL = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/root/";
+            { 
+                name: "Routes",
+                legende: "Importance", 
+                layer: createWms("IPAS:routes"),
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> — Réseau routier principal issu de la BD TOPO de l'IGN, utilisé pour le calcul des distances réelles de parcours."
+            },
+            { 
+                name: "Densité par quartiers",
+                legende: "Densité (hab/km²)", 
+                layer: createWms("IPAS:quartier_admin_densite"),
+                description: "<a href='https://opendata.paris.fr/explore/dataset/quartier_paris/' target='_blank'>Source : Open Data Paris</a> —<a href='https://www.insee.fr/fr/statistiques/1405815' target='_blank'>INSEE</a> — Représentation de la densité de population par quartier administratif (habitants/km²)."
+            },
+            { 
+                name: "Parcs",
+                legende: "Parcs", 
+                layer: createWms("IPAS:parcs"),
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> — Localisation des espaces verts publics, jardins et parcs urbains de la ville de Paris."
+            },
+            { 
+                name: "Bâtiments",
+                legende: "Nombre d'habitants", 
+                layer: createWms("IPAS:batiment_pop"),
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> —<a href='https://www.insee.fr/fr/statistiques/8647014' target='_blank'>INSEE</a> — Estimation de la population par bâtiment, croisée avec les données IRIS de l'INSEE."
+            },
+            { 
+                name: "Seine",
+                legende: "Seine", 
+                layer: createWms("IPAS:Seine"),
+                description: "<a href='https://geoservices.ign.fr/bdtopo' target='_blank'>Source : BDTOPO (IGN)</a> — Tracé hydrographique de la Seine, élément structurant du paysage parisien."
+            },
+            { 
+                name: "Revenus (IRIS)",
+                legende: "Revenu médian en UC (€)", 
+                layer: createWms("IPAS:IRIS_PARIS_revenu"),
+                description: "<a href='https://www.insee.fr/fr/statistiques/8229323' target='_blank'>Source : INSEE</a> — Médiane du revenu disponible par unité de consommation à l'échelle fine des IRIS (INSEE)."
+            }
+        ];
 
-const layers = [
-{ name:"IPAS", file:"IPAS.geojson", style:{ color:"#08306b", weight:1, fillOpacity:0.6 } },
-{ name:"Routes", file:"routes.geojson", style:{ color:"#555", weight:1 } },
-{ name:"Parcs", file:"parcs.geojson", style:{ color:"#2ecc71", fillOpacity:0.7 } },
-{ name:"Seine", file:"Seine.geojson", style:{ color:"#3498db", weight:2 } },
-{ name:"Revenus", file:"IRIS_PARIS_revenu.geojson", style:{ color:"#8e44ad", fillOpacity:0.6 } }
-];
 
-const layerList = document.getElementById("layer-list");
+        /* 4. OUTILS TECHNIQUES */
+        //https://leafletjs.com/reference.html#control-scale
+        L.control.scale({ position: 'bottomleft' }).addTo(map);
+        
+        // Pour avoir les coordonnées de la souris on a commencé par
+        // https://github.com/edihasaj/leaflet-coord-projection/blob/master/coord-projection.js
+        // mais ca ne marchait pas
+        //https://leafletjs.com/reference.html#control
+        // c'est une petite boite avec un truc dynamique
+        // contrairement à python on peut stocker une référence dans const pour le rappeler après
+        // onAdd vient de leaflet https://leafletjs.com/reference.html#layer-addto
+        // il va appeler coords et placer dedans dynamiquement la sortie de function
+        // la fonction a été généré par IA d'après le github de edihasaj
+        // On a demandé à l'IA de garder le strict nécéssaire car son code était trop long et complexe a intégrer. 
+        const coords = L.control({ position: 'bottomright' });
+        coords.onAdd = function() {
+            this._div = L.DomUtil.create('div', 'leaflet-control-coords');
+            map.on('mousemove', e => {
+                const p = lambert93.project(e.latlng);
+                this._div.innerHTML = `L93: ${p.x.toFixed(0)} m | ${p.y.toFixed(0)} m`;
+            });
+            return this._div;
+        };
+        coords.addTo(map);
 
-layers.forEach((cfg, i) => {
-fetch(baseURL + cfg.file)
-.then(r => r.json())
-.then(data => {
-cfg.layer = L.geoJSON(data, { style: cfg.style });
-const div = document.createElement("div");
-div.className = "layer-item";
-div.innerHTML = `
-<label>
-<input type="checkbox" onchange="toggleLayer(${i})"> ${cfg.name}
-</label>`;
-layerList.appendChild(div);
-});
-});
 
-function toggleLayer(i) {
-const l = layers[i].layer;
-map.hasLayer(l) ? map.removeLayer(l) : l.addTo(map);
-}
-</script>
 
+        /* 5. LÉGENDE */
+        // C'est la partie du code où nous avons eu le plus de difficulté.
+        // Après de multiple tentative nous sommes partie sur la génération automatique de légende de géoserver.
+        // Pour la placer avec la même technique que coords
+        // https://leafletjs.com/examples/choropleth/
+        // cette partie vient de leaflet
+        const legend = L.control({ position: 'bottomleft' });
+        legend.onAdd = function() {
+            this._div = L.DomUtil.create('div', 'legend modern-box');
+            this.update();
+            return this._div;
+        };
+        // https://docs.geoserver.org/main/en/user/services/wms/get_legend_graphic/index.html
+        // exemple 
+        // http://localhost:8080/geoserver/IPAS/wms?REQUEST=GetLegendGraphic&VERSION=1.3.0&FORMAT=image/png&LAYER=IPAS:IPAS
+        // on a donc prit ce lien pour le placer dans le control legend, et il affiche la légende de chaque (la boucle for c'est .forEach https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach) couche déjà présent dans la map
+        // avec hasLayer de https://leafletjs.com/reference.html#map-haslayer
+        // structure de la fonction a été généré par IA
+        legend.update = function() {
+            let content = "<strong>Légende</strong><hr style='border:0; border-top:1px solid #eee; margin:5px 0;'>";
+            let hasL = false;
+            overlaysData.forEach(o => {
+                if(map.hasLayer(o.layer)) {
+                    hasL = true;
+                    content += `<div style='margin-bottom:8px;'><strong>${o.legende}</strong><br><img src="http://localhost:8080/geoserver/IPAS/wms?REQUEST=GetLegendGraphic&VERSION=1.3.0&FORMAT=image/png&LAYER=${o.layer.options.layers}"></div>`;
+                }
+            });
+            this._div.innerHTML = hasL ? content : "Aucune couche active";
+        };
+        legend.addTo(map);
+
+        /* 6. GESTIONNAIRE DE COUCHES */
+       // Cette partie gère la liste des couches WMS dans la sidebar :
+        // - affichage de la liste
+        // - activation / désactivation des couches
+        // - réglage de l’opacité
+        // - réorganisation par glisser-déposer
+        // On n’utilise PAS le L.control.layers de Leaflet ici, car on veut
+        // un contrôle beaucoup plus riche (description, slider, légende, ordre)
+
+        // On récupère le conteneur HTML (du html dans js dans du html...) dans lequel on va injecter les couches
+        const listContainer = document.getElementById('layer-list-container');
+        // Cette fonction reconstruit entièrement la liste des couches
+        // Elle est appelée :
+        // - au chargement
+        // - après chaque interaction (toggle, opacité, drag)
+        function renderLayers() {
+            listContainer.innerHTML = '';
+            // On parcourt toutes les couches définies dans overlaysData
+            overlaysData.forEach((item, idx) => {
+               // Création du bloc principal de la couche
+               // généré par ia
+                const div = document.createElement('div');
+                div.className = 'layer-item';
+                div.draggable = true;
+                div.dataset.index = idx;
+                // HTML interne de chaque couche (généré par IA):
+                // - checkbox pour activer/désactiver
+                // - flèche pour ouvrir la description
+                // - slider d’opacité
+                div.innerHTML = `
+                    <div class="layer-header">
+                        <label>
+                            <input type="checkbox"
+                                   ${map.hasLayer(item.layer) ? 'checked' : ''}
+                                   onchange="toggleLayer(${idx})">
+                            ${item.name}
+                        </label>
+                        <span class="arrow" onclick="toggleAcc(${idx}, event)">▼</span>
+                    </div>
+
+                    <div id="acc-${idx}" class="layer-details"
+                         draggable="false"
+                         onmousedown="event.stopPropagation()">
+
+                        <div class="opacity-slider-container">
+                            <label style="font-size:0.75rem; color:#888; font-weight: bold;">
+                                Opacité
+                            </label>
+                            <input type="range"
+                                   min="0" max="1" step="0.1"
+                                   value="${item.layer.options.opacity || 1}"
+                                   oninput="changeOpacity(${idx}, this.value)">
+                        </div>
+
+                        <div style="line-height: 1.4; color: #444; margin-top: 10px;
+                                    border-left: 2px solid #4169E1; padding-left: 10px;">
+                            ${item.description}
+                        </div>
+                    </div>
+                `;
+                /* ----- GESTION DU DRAG & DROP ----- */
+                // Quand on commence à déplacer une couche
+                div.addEventListener('dragstart', (e) => { 
+                    if (e.target.tagName === 'INPUT') return e.preventDefault();
+                    div.classList.add('dragging'); 
+                });
+                // Quand on lâche la couche
+                div.addEventListener('dragend', () => div.classList.remove('dragging'));
+                 // Autorise le drop
+                div.addEventListener('dragover', e => e.preventDefault());
+                // Quand on dépose une couche sur une autre
+                div.addEventListener('drop', e => {
+                    const dragging = document.querySelector('.dragging');
+                    if (!dragging) return;
+
+                    const dragIdx = Number(dragging.dataset.index);
+                    const targetIdx = Number(div.dataset.index);
+
+                    const moved = overlaysData.splice(dragIdx, 1)[0];
+                    overlaysData.splice(targetIdx, 0, moved);
+
+                    refreshLayers();
+                });
+                // On ajoute la couche à la sidebar
+                listContainer.appendChild(div);
+            });
+        }
+        // Active ou désactive une couche sur la carte avec leaflet 
+        // haslayer on l'a vu c'est la couche actif si elle il y est pas alors
+        // elle est remove sinon elle est affiché
+        // on a trouvé les fonctions dans https://leafletjs.com/reference.html
+        function toggleLayer(idx) {
+            const l = overlaysData[idx].layer;
+            map.hasLayer(l) ? map.removeLayer(l) : l.addTo(map);
+            refreshLayers();
+        }
+        // change l'opacité https://leafletjs.com/reference.html#marker-setopacity
+        function changeOpacity(idx, val) { overlaysData[idx].layer.setOpacity(val); }
+        // Ouvre ou ferme la description d’une couche
+        // https://leafletjs.com/reference.html#domevent-stoppropagation
+        // https://stackoverflow.com/questions/18608509/stop-propagation-of-click-event-in-leaflet
+        function toggleAcc(idx, e) {
+            e.stopPropagation();
+            // script js pure généré par IA pour faire tourner la flèche
+            document.getElementById(`acc-${idx}`).classList.toggle('active');
+            e.target.classList.toggle('rotate');
+        }
+        // Met à jour :
+        // - l’ordre des couches (z-index) généré par IA
+        // - la liste dans la sidebar (renderLayers)
+        // - la légende
+        function refreshLayers() {
+            [...overlaysData].reverse().forEach((o, i) => {
+                if(map.hasLayer(o.layer)) o.layer.setZIndex(1000 + i);
+            });
+            renderLayers();
+            legend.update();
+        }
+
+        /* 7. RECHERCHE */
+        // async c'est une fonction asynchronisé, vu que JS c'est pour gérer des pages web,
+        // (await) ça va attendre que le site solicité renvoit sa réponse, en attendant il continue d'executer le reste du code
+        
+        async function searchAddress() {
+            // on prend l'adresse entrée
+            const q = document.getElementById('address-input').value;
+            // c'est la meme logique que currentlayer, !q teste si c'est falsy
+            // https://developer.mozilla.org/en-US/docs/Glossary/Falsy
+            // si c'est faux alors il le transforme en True (!) puis il arrête la fonction avec return
+            if(!q) return;
+            // try comme python, c'est pour éviter que le code s'arrête avec les erreurs fatal en cas 
+            // d'erreur avec le serveur interroger 
+            try {
+                // await c'est la fameuse fonctionnalité de JS qui va attendre la réponse du serveur
+                const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`);
+                const d = await r.json();
+                // on retest au cas où d n'est pas vide
+                if(d.features.length > 0) {
+                    const c = d.features[0].geometry.coordinates; // on a tester et vu que le [0] c les coordonnées
+                    const latlng = [c[1], c[0]]; //on prend x y
+                    map.setView(latlng, 16); // on zoom sur les coordonnees
+                    updateMarker(latlng, d.features[0].properties.label); //on met à jour le marker voir plus haut
+                }
+            } catch (e) { console.error(e); } //si il y a une erreur avec https://api-adresse.data.gouv.fr renvoyé par await alors il renvoit l'erreur
+        }
+
+        // initialisation
+        overlaysData.find(o => o.name === "Seine").layer.addTo(map);
+        refreshLayers();
+    </script>
 </body>
 </html>
-
-
-
