@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>IPAS - Indice de Potentialité d'Espaces Verts</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+html, body { height:100%; margin:0; font-family:Segoe UI, Roboto, Arial, sans-serif; }
+#map { position:absolute; top:80px; bottom:50px; left:340px; right:0; }
+.header-banner { height:80px; background:#4169E1; color:white; display:flex; align-items:center; justify-content:center; }
+.header-banner h1 { font-size:1.1rem; text-align:center; margin:0 120px; }
+.header-logo { position:absolute; right:20px; height:50px; background:white; padding:5px; border-radius:5px; }
+#sidebar { position:absolute; top:80px; bottom:50px; left:0; width:340px; background:#f8f9fa; padding:20px; overflow-y:auto; }
+.layer-item { padding:10px; border-bottom:1px solid #ddd; }
+.layer-details { display:none; font-size:0.85rem; }
+.layer-details.active { display:block; }
+.footer-banner { height:50px; position:absolute; bottom:0; width:100%; background:#e9ecef; display:flex; justify-content:space-between; align-items:center; padding:0 20px; font-size:0.7rem; }
+</style>
+</head>
+
+<body>
+
+<header class="header-banner">
+<h1>Indice de potentialité de Paris d'espaces verts pondéré à la distance et à la qualité</h1>
+<img class="header-logo" src="https://lptm.cyu.fr/medias/photo/cy-cergy-paris-universite-coul_1611572232688-png">
+</header>
+
+<div id="sidebar">
+<h3>Recherche d'adresse</h3>
+<input id="address-input" style="width:100%; padding:8px">
+<button onclick="searchAddress()" style="width:100%; margin-top:8px">Chercher</button>
+
+<h3 style="margin-top:20px">Couches</h3>
+<div id="layer-list"></div>
+</div>
+
+<div id="map"></div>
+
+<footer class="footer-banner">
+<div><strong>JOAQUIM Julian</strong> – <strong>GIRARD Paul</strong></div>
+<div>CY Cergy Paris Université – Master Géomatique</div>
+<div>Sources : IGN, INSEE, OpenData Paris</div>
+</footer>
+
+<script>
+const map = L.map('map').setView([48.8566, 2.3522], 12);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+attribution: '© OpenStreetMap'
+}).addTo(map);
+
+let currentMarker = null;
+
+function updateMarker(latlng, label) {
+if (currentMarker) map.removeLayer(currentMarker);
+currentMarker = L.marker(latlng).addTo(map).bindPopup(label).openPopup();
+}
+
+map.on('click', e => updateMarker(e.latlng, `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`));
+
+async function searchAddress() {
+const q = document.getElementById('address-input').value;
+if (!q) return;
+const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`);
+const d = await r.json();
+if (d.features.length) {
+const c = d.features[0].geometry.coordinates;
+const latlng = [c[1], c[0]];
+map.setView(latlng, 16);
+updateMarker(latlng, d.features[0].properties.label);
+}
+}
+
+const baseURL = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/data/";
+
+const layers = [
+{ name:"IPAS", file:"IPAS.geojson", style:{ color:"#08306b", weight:1, fillOpacity:0.6 } },
+{ name:"Routes", file:"routes.geojson", style:{ color:"#555", weight:1 } },
+{ name:"Parcs", file:"parcs.geojson", style:{ color:"#2ecc71", fillOpacity:0.7 } },
+{ name:"Seine", file:"Seine.geojson", style:{ color:"#3498db", weight:2 } },
+{ name:"Revenus", file:"IRIS_PARIS_revenu.geojson", style:{ color:"#8e44ad", fillOpacity:0.6 } }
+];
+
+const layerList = document.getElementById("layer-list");
+
+layers.forEach((cfg, i) => {
+fetch(baseURL + cfg.file)
+.then(r => r.json())
+.then(data => {
+cfg.layer = L.geoJSON(data, { style: cfg.style });
+const div = document.createElement("div");
+div.className = "layer-item";
+div.innerHTML = `
+<label>
+<input type="checkbox" onchange="toggleLayer(${i})"> ${cfg.name}
+</label>`;
+layerList.appendChild(div);
+});
+});
+
+function toggleLayer(i) {
+const l = layers[i].layer;
+map.hasLayer(l) ? map.removeLayer(l) : l.addTo(map);
+}
+</script>
+
+</body>
+</html>
