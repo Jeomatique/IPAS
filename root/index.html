@@ -5,6 +5,15 @@
     <title>IPAS - Indice de Potentialité d'Espaces Verts</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Import des styles convertis depuis SLD -->
+    <script src="IPAS.js"></script>
+    <script src="routes.js"></script>
+    <script src="quartier_admin_densite.js"></script>
+    <script src="parcs.js"></script>
+    <script src="Seine.js"></script>
+    <script src="IRIS_PARIS_revenu.js"></script>
+    
     <style>
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f0f2f5; }
         .header-banner { height: 80px; background: linear-gradient(135deg, #4169E1 0%, #2a47a3 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: relative; z-index: 1100; }
@@ -23,12 +32,14 @@
         .opacity-slider-container { margin-bottom: 10px; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #4169E1; }
         #map { position: absolute; top: 80px; bottom: 50px; left: 340px; right: 0; }
+        .legend.modern-box { max-height: 400px; overflow-y: auto; background: rgba(255, 255, 255, 0.95); width: 250px; z-index: 1000; }
+        .legend img { max-width: 100%; display: block; margin: 5px 0 15px 0; }
         .footer-banner { height: 50px; background: linear-gradient(to bottom, #f8f9fa, #e9ecef); position: absolute; bottom: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25px; box-sizing: border-box; border-top: 1px solid #d1d1d1; z-index: 1100; font-size: 0.7rem; color: #444; }
         .btn-blue { width: 100%; padding: 10px; background-color: #4169E1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         #address-input { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         .arrow { font-size: 0.7rem; color: #aaa; transition: transform 0.3s; cursor: pointer; }
         .arrow.rotate { transform: rotate(180deg); color: #4169E1; }
-        .status-message { position: absolute; top: 90px; left: 350px; background: white; padding: 10px 20px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 2000; }
+        .loading-indicator { position: absolute; top: 90px; left: 350px; background: white; padding: 10px 20px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 2000; display: none; }
     </style>
 </head>
 <body>
@@ -59,6 +70,10 @@
     </div>
 
     <div id="map"></div>
+    
+    <div id="loading-indicator" class="loading-indicator">
+        Chargement des couches...
+    </div>
 
     <footer class="footer-banner">
         <div><strong>JOAQUIM Julian</strong> M1<br><strong>GIRARD Paul </strong> M1</div>
@@ -67,7 +82,6 @@
     </footer>
 
     <script>
-        // CORRECTION: Utiliser EPSG:4326 au lieu de Lambert 93
         const map = L.map('map').setView([48.857, 2.341], 12);
         const baseUrl = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/root/";
 
@@ -98,12 +112,13 @@
             updateMarker(e.latlng, `Point sélectionné<br>Lat: ${e.latlng.lat.toFixed(4)}, Lon: ${e.latlng.lng.toFixed(4)}`);
         });
 
-        // CORRECTION: Fonction simplifiée pour créer les couches avec styles basiques
-        function createGeoLayer(fileName, color) {
+        // Fonction pour créer une couche GeoJSON avec style SLD converti
+        function createGeoLayer(fileName, styleFunction) {
             const layer = L.geoJSON(null, {
-                style: function(feature) {
+                style: styleFunction || function(feature) {
+                    // Style par défaut si la fonction n'existe pas
                     return {
-                        fillColor: color,
+                        fillColor: '#cccccc',
                         fillOpacity: 0.7,
                         color: '#383838',
                         weight: 2,
@@ -118,32 +133,101 @@
                     return r.json();
                 })
                 .then(geoData => {
-                    console.log(`Chargé: ${fileName}`, geoData);
+                    console.log(`✓ Chargé: ${fileName}`, geoData);
                     layer.addData(geoData);
                     if (map.hasLayer(layer)) {
-                        map.fitBounds(layer.getBounds());
+                        try {
+                            map.fitBounds(layer.getBounds());
+                        } catch (e) {
+                            console.log(`Impossible de centrer sur ${fileName}`);
+                        }
                     }
                 })
-                .catch(err => console.error(`Erreur sur ${fileName}:`, err));
+                .catch(err => console.error(`✗ Erreur sur ${fileName}:`, err));
             
             return layer;
         }
 
-        // Définition des couches avec des couleurs par défaut
+        // Vérification de l'existence des fonctions de style
+        function getStyleFunction(fileName) {
+            // Cherche la fonction de style globale portant le même nom que le fichier
+            const styleFunctionName = fileName;
+            if (typeof window[styleFunctionName] === 'function') {
+                console.log(`✓ Style trouvé pour ${fileName}`);
+                return window[styleFunctionName];
+            } else {
+                console.warn(`⚠ Pas de style trouvé pour ${fileName}, utilisation du style par défaut`);
+                return null;
+            }
+        }
+
+        // Définition des couches avec leurs styles convertis
         const overlaysData = [
-            { file: "IPAS", name: "IPAS", description: "Indice de potentialité d'accès à un espace vert saturant.", layer: null, color: "#ff7f0e" },
-            { file: "routes", name: "Routes", description: "Réseau routier principal (IGN).", layer: null, color: "#1f77b4" },
-            { file: "quartier_admin_densite", name: "Densité par quartiers", description: "Densité de population par quartier administratif.", layer: null, color: "#d62728" },
-            { file: "parcs", name: "Parcs", description: "Localisation des parcs et jardins publics.", layer: null, color: "#2ca02c" },
-            { file: "Seine", name: "Seine", description: "Tracé de la Seine.", layer: null, color: "#68a9df" },
-            { file: "IRIS_PARIS_revenu", name: "Revenus (IRIS)", description: "Revenu disponible par unité de consommation.", layer: null, color: "#9467bd" }
+            { 
+                file: "IPAS", 
+                name: "IPAS", 
+                description: "Indice de potentialité d'accès à un espace vert saturant.", 
+                layer: null 
+            },
+            { 
+                file: "routes", 
+                name: "Routes", 
+                description: "Réseau routier principal (IGN).", 
+                layer: null 
+            },
+            { 
+                file: "quartier_admin_densite", 
+                name: "Densité par quartiers", 
+                description: "Densité de population par quartier administratif.", 
+                layer: null 
+            },
+            { 
+                file: "parcs", 
+                name: "Parcs", 
+                description: "Localisation des parcs et jardins publics.", 
+                layer: null 
+            },
+            { 
+                file: "Seine", 
+                name: "Seine", 
+                description: "Tracé de la Seine.", 
+                layer: null 
+            },
+            { 
+                file: "IRIS_PARIS_revenu", 
+                name: "Revenus (IRIS)", 
+                description: "Revenu disponible par unité de consommation.", 
+                layer: null 
+            }
         ];
 
+        // Création des couches avec leurs styles respectifs
         overlaysData.forEach(obj => { 
-            obj.layer = createGeoLayer(obj.file, obj.color); 
+            const styleFunc = getStyleFunction(obj.file);
+            obj.layer = createGeoLayer(obj.file, styleFunc); 
         });
 
         L.control.scale({ position: 'bottomleft' }).addTo(map);
+
+        const legend = L.control({ position: 'bottomleft' });
+        legend.onAdd = function() {
+            this._div = L.DomUtil.create('div', 'legend modern-box');
+            this.update();
+            return this._div;
+        };
+        legend.update = function() {
+            let content = "<strong>Légende</strong><hr style='border:0; border-top:1px solid #eee; margin:5px 0;'>";
+            let hasActive = false;
+            overlaysData.forEach(o => {
+                if(map.hasLayer(o.layer)) {
+                    hasActive = true;
+                    content += `<div><strong>${o.name}</strong></div>`;
+                    content += `<img src="${baseUrl}${o.file}.png" alt="Légende ${o.name}">`;
+                }
+            });
+            this._div.innerHTML = hasActive ? content : "Aucune couche active";
+        };
+        legend.addTo(map);
 
         const listContainer = document.getElementById('layer-list-container');
         function renderLayers() {
@@ -151,6 +235,8 @@
             overlaysData.forEach((item, idx) => {
                 const div = document.createElement('div');
                 div.className = 'layer-item';
+                div.draggable = true;
+                div.dataset.index = idx;
                 div.innerHTML = `
                     <div class="layer-header">
                         <label>
@@ -159,7 +245,7 @@
                         </label>
                         <span class="arrow" onclick="toggleAcc(${idx}, event)">▼</span>
                     </div>
-                    <div id="acc-${idx}" class="layer-details">
+                    <div id="acc-${idx}" class="layer-details" draggable="false" onmousedown="event.stopPropagation()">
                         <div class="opacity-slider-container">
                             <label style="font-size:0.75rem; color:#888; font-weight: bold;">Opacité</label>
                             <input type="range" min="0" max="1" step="0.1" value="0.7" oninput="changeOpacity(${idx}, this.value)">
@@ -169,18 +255,26 @@
                         </div>
                     </div>
                 `;
+                div.addEventListener('dragstart', (e) => { if (e.target.tagName === 'INPUT') return e.preventDefault(); div.classList.add('dragging'); });
+                div.addEventListener('dragend', () => div.classList.remove('dragging'));
+                div.addEventListener('dragover', e => e.preventDefault());
+                div.addEventListener('drop', e => {
+                    const dragging = document.querySelector('.dragging');
+                    if (!dragging) return;
+                    const dragIdx = Number(dragging.dataset.index);
+                    const targetIdx = Number(div.dataset.index);
+                    const moved = overlaysData.splice(dragIdx, 1)[0];
+                    overlaysData.splice(targetIdx, 0, moved);
+                    refreshLayers();
+                });
                 listContainer.appendChild(div);
             });
         }
 
         function toggleLayer(idx) {
             const l = overlaysData[idx].layer;
-            if (map.hasLayer(l)) {
-                map.removeLayer(l);
-            } else {
-                l.addTo(map);
-            }
-            renderLayers();
+            map.hasLayer(l) ? map.removeLayer(l) : l.addTo(map);
+            refreshLayers();
         }
 
         function changeOpacity(idx, val) {
@@ -191,6 +285,14 @@
             e.stopPropagation();
             document.getElementById(`acc-${idx}`).classList.toggle('active');
             e.target.classList.toggle('rotate');
+        }
+
+        function refreshLayers() {
+            [...overlaysData].reverse().forEach((o, i) => {
+                if(map.hasLayer(o.layer)) o.layer.bringToFront();
+            });
+            renderLayers();
+            legend.update();
         }
 
         async function searchAddress() {
@@ -211,9 +313,10 @@
         // Initialisation
         const seineLayer = overlaysData.find(o => o.file === "Seine");
         if(seineLayer) seineLayer.layer.addTo(map);
-        renderLayers();
+        refreshLayers();
         
-        console.log("Carte initialisée. Vérifiez la console pour les erreurs de chargement.");
+        console.log("🗺️ Carte initialisée");
+        console.log("📊 Couches disponibles:", overlaysData.map(o => o.file));
     </script>
 </body>
 </html>
