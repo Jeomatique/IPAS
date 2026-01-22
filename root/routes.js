@@ -1,4 +1,4 @@
-function routesStyle(feature) {
+function routes(feature) {
   if (feature.properties['IMPORTANCE'] === '2' && feature.properties['IMPORTANCE'] === '3') {
     return {
           "color": "#6e6e6e",

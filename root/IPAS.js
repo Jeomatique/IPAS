@@ -1,4 +1,4 @@
-function IPASStyle(feature) {
+function IPAS(feature) {
   if (feature.properties['class_et'] === '< -1') {
     return {
           "fillColor": "#900002",

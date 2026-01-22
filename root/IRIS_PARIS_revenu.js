@@ -1,4 +1,4 @@
-function IRIS_PARIS_revenuStyle(feature) {
+function IRIS_PARIS_revenu(feature) {
   if (feature.properties['MED21'] >= 0 && feature.properties['MED21'] <= 15342.80000000000109139) {
     return {
           "fillColor": "#f6f6f6",

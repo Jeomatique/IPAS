@@ -1,4 +1,4 @@
-function quartierDensiteStyle(feature) {
+function quartier_admin_densite(feature) {
   if (feature.properties['densite'] >= 1835 && feature.properties['densite'] <= 11800.6000000000003638) {
     return {
           "fillColor": "#fafafa",

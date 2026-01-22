@@ -1,7 +1,7 @@
-function parcs(feature) {
+function Seine(feature) {
   if (true) {
     return {
-          "fillColor": "#66a95a",
+          "fillColor": "#68a9df",
           "fillOpacity": 1.0
     };
   }
