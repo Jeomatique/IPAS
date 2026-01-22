@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<StyledLayerDescriptor xmlns="http://www.opengis.net/sld" version="1.1.0" xmlns:ogc="http://www.opengis.net/ogc" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" xmlns:se="http://www.opengis.net/se" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink">
+<StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:se="http://www.opengis.net/se" version="1.1.0">
   <NamedLayer>
     <se:Name>Importance</se:Name>
     <UserStyle>
@@ -22,10 +22,10 @@
               </ogc:PropertyIsEqualTo>
             </ogc:Or>
           </ogc:Filter>
-          <se:LineSymbolizer uom="http://www.opengeospatial.org/se/units/metre">
+          <se:LineSymbolizer>
             <se:Stroke>
               <se:SvgParameter name="stroke">#6e6e6e</se:SvgParameter>
-              <se:SvgParameter name="stroke-width">1.06000000000000005</se:SvgParameter>
+              <se:SvgParameter name="stroke-width">1</se:SvgParameter>
               <se:SvgParameter name="stroke-linejoin">round</se:SvgParameter>
               <se:SvgParameter name="stroke-linecap">round</se:SvgParameter>
             </se:Stroke>
@@ -42,10 +42,10 @@
               <ogc:Literal>4</ogc:Literal>
             </ogc:PropertyIsEqualTo>
           </ogc:Filter>
-          <se:LineSymbolizer uom="http://www.opengeospatial.org/se/units/metre">
+          <se:LineSymbolizer>
             <se:Stroke>
               <se:SvgParameter name="stroke">#000000</se:SvgParameter>
-              <se:SvgParameter name="stroke-width">0.26000000000000001</se:SvgParameter>
+              <se:SvgParameter name="stroke-width">2</se:SvgParameter>
               <se:SvgParameter name="stroke-linejoin">bevel</se:SvgParameter>
               <se:SvgParameter name="stroke-linecap">square</se:SvgParameter>
             </se:Stroke>
@@ -68,10 +68,10 @@
               </ogc:PropertyIsEqualTo>
             </ogc:Or>
           </ogc:Filter>
-          <se:LineSymbolizer uom="http://www.opengeospatial.org/se/units/metre">
+          <se:LineSymbolizer>
             <se:Stroke>
               <se:SvgParameter name="stroke">#a0a0a0</se:SvgParameter>
-              <se:SvgParameter name="stroke-width">0.26000000000000001</se:SvgParameter>
+              <se:SvgParameter name="stroke-width">1</se:SvgParameter>
               <se:SvgParameter name="stroke-linejoin">bevel</se:SvgParameter>
               <se:SvgParameter name="stroke-linecap">square</se:SvgParameter>
             </se:Stroke>
@@ -88,26 +88,26 @@
               <ogc:Literal>2</ogc:Literal>
             </ogc:PropertyIsEqualTo>
           </ogc:Filter>
-          <se:LineSymbolizer uom="http://www.opengeospatial.org/se/units/metre">
+          <se:LineSymbolizer>
             <se:Stroke>
               <se:SvgParameter name="stroke">#000000</se:SvgParameter>
-              <se:SvgParameter name="stroke-width">2.45999999999999996</se:SvgParameter>
+              <se:SvgParameter name="stroke-width">6</se:SvgParameter>
               <se:SvgParameter name="stroke-linejoin">round</se:SvgParameter>
               <se:SvgParameter name="stroke-linecap">round</se:SvgParameter>
             </se:Stroke>
           </se:LineSymbolizer>
-          <se:LineSymbolizer uom="http://www.opengeospatial.org/se/units/metre">
+          <se:LineSymbolizer>
             <se:Stroke>
               <se:SvgParameter name="stroke">#f5efef</se:SvgParameter>
-              <se:SvgParameter name="stroke-width">2.45999999999999996</se:SvgParameter>
+              <se:SvgParameter name="stroke-width">5</se:SvgParameter>
               <se:SvgParameter name="stroke-linejoin">round</se:SvgParameter>
               <se:SvgParameter name="stroke-linecap">round</se:SvgParameter>
             </se:Stroke>
           </se:LineSymbolizer>
-          <se:LineSymbolizer uom="http://www.opengeospatial.org/se/units/metre">
+          <se:LineSymbolizer>
             <se:Stroke>
               <se:SvgParameter name="stroke">#c74a4a</se:SvgParameter>
-              <se:SvgParameter name="stroke-width">0.85999999999999999</se:SvgParameter>
+              <se:SvgParameter name="stroke-width">2</se:SvgParameter>
               <se:SvgParameter name="stroke-linejoin">round</se:SvgParameter>
               <se:SvgParameter name="stroke-linecap">round</se:SvgParameter>
             </se:Stroke>
