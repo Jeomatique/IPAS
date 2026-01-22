@@ -26,7 +26,8 @@
         .opacity-slider-container { margin-bottom: 10px; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #4169E1; }
         #map { position: absolute; top: 80px; bottom: 50px; left: 340px; right: 0; }
-        .legend.modern-box { max-height: 250px; overflow-y: auto; background: rgba(255, 255, 255, 0.95); width: 220px; z-index: 1000; }
+        .legend.modern-box { max-height: 400px; overflow-y: auto; background: rgba(255, 255, 255, 0.95); width: 250px; z-index: 1000; }
+        .legend img { max-width: 100%; display: block; margin: 5px 0 15px 0; }
         .footer-banner { height: 50px; background: linear-gradient(to bottom, #f8f9fa, #e9ecef); position: absolute; bottom: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25px; box-sizing: border-box; border-top: 1px solid #d1d1d1; z-index: 1100; font-size: 0.7rem; color: #444; }
         .leaflet-control-coords { background: rgba(255,255,255,0.9); padding: 4px 8px; font-family: monospace; border-radius: 4px; border: 1px solid #ccc; margin-right: 10px !important; }
         .btn-blue { width: 100%; padding: 10px; background-color: #4169E1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -73,6 +74,7 @@
     <script>
         const lambert93 = new L.Proj.CRS('EPSG:2154', '+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs');
         const map = L.map('map', { attributionControl: true }).setView([48.857, 2.341], 12);
+        const baseUrl = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/root/";
 
         const baseLayers = {
             "OpenStreetMap": L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map),
@@ -97,32 +99,31 @@
 
         function createGeoLayer(fileName) {
             const layer = L.geoJSON(null);
-            const baseUrl = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/root/";
-            
             Promise.all([
                 fetch(`${baseUrl}${fileName}.geojson`).then(r => r.json()),
                 fetch(`${baseUrl}${fileName}.sld`).then(r => r.text())
             ]).then(([geoData, sldText]) => {
                 const sldObject = SLDReader.Reader.readSLD(sldText);
                 const styleInfo = SLDReader.Reader.getLayerStyle(sldObject);
-                
                 layer.addData(geoData);
                 layer.setStyle((feature) => {
                     return SLDReader.LeafletLayer.getStyleFunction(styleInfo.symbolizers)(feature);
                 });
             }).catch(err => console.error(`Erreur sur ${fileName}:`, err));
-            
             return layer;
         }
 
         const overlaysData = [
-            { name: "IPAS", legende: "IPAS (écart-type)", layer: createGeoLayer("IPAS"), description: "Indice de potentialité d’accès à un espace vert saturant." },
-            { name: "Routes", legende: "Réseau routier", layer: createGeoLayer("routes"), description: "Réseau routier principal (IGN)." },
-            { name: "Densité par quartiers", legende: "Densité (hab/km²)", layer: createGeoLayer("quartier_admin_densite"), description: "Densité de population par quartier administratif." },
-            { name: "Parcs", legende: "Espaces verts", layer: createGeoLayer("parcs"), description: "Localisation des parcs et jardins publics." },
-            { name: "Seine", legende: "La Seine", layer: createGeoLayer("Seine"), description: "Tracé de la Seine." },
-            { name: "Revenus (IRIS)", legende: "Revenu médian", layer: createGeoLayer("IRIS_PARIS_revenu"), description: "Revenu disponible par unité de consommation." }
+            { file: "IPAS", name: "IPAS", description: "Indice de potentialité d’accès à un espace vert saturant.", layer: null },
+            { file: "routes", name: "Routes", description: "Réseau routier principal (IGN).", layer: null },
+            { file: "quartier_admin_densite", name: "Densité par quartiers", description: "Densité de population par quartier administratif.", layer: null },
+            { file: "parcs", name: "Parcs", description: "Localisation des parcs et jardins publics.", layer: null },
+            { file: "batiment_pop", name: "Bâtiments", description: "Estimation de la population par bâtiment.", layer: null },
+            { file: "Seine", name: "Seine", description: "Tracé de la Seine.", layer: null },
+            { file: "IRIS_PARIS_revenu", name: "Revenus (IRIS)", description: "Revenu disponible par unité de consommation.", layer: null }
         ];
+
+        overlaysData.forEach(obj => { obj.layer = createGeoLayer(obj.file); });
 
         L.control.scale({ position: 'bottomleft' }).addTo(map);
         
@@ -145,14 +146,15 @@
         };
         legend.update = function() {
             let content = "<strong>Légende</strong><hr style='border:0; border-top:1px solid #eee; margin:5px 0;'>";
-            let hasL = false;
+            let hasActive = false;
             overlaysData.forEach(o => {
                 if(map.hasLayer(o.layer)) {
-                    hasL = true;
-                    content += `<div style='margin-bottom:8px;'><span style='display:inline-block; width:12px; height:12px; border:1px solid #999; background:#4169E1; margin-right:5px;'></span><strong>${o.legende}</strong></div>`;
+                    hasActive = true;
+                    content += `<div><strong>${o.name}</strong></div>`;
+                    content += `<img src="${baseUrl}${o.file}.png" alt="Légende ${o.name}">`;
                 }
             });
-            this._div.innerHTML = hasL ? content : "Aucune couche active";
+            this._div.innerHTML = hasActive ? content : "Aucune couche active";
         };
         legend.addTo(map);
 
@@ -237,7 +239,8 @@
             } catch (e) { console.error(e); }
         }
 
-        overlaysData.find(o => o.name === "Seine").layer.addTo(map);
+        const seineLayer = overlaysData.find(o => o.file === "Seine");
+        if(seineLayer) seineLayer.layer.addTo(map);
         refreshLayers();
     </script>
 </body>
