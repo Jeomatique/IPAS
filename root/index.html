@@ -8,14 +8,14 @@
     <script src="https://unpkg.com/proj4@2.9.1/dist/proj4.js"></script>
     <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
     <style>
-        /* CONFIGURATION GLOBALE */
+        
         html, body {
             height: 100%; margin: 0; padding: 0;
             overflow: hidden; font-family: 'Segoe UI', Roboto, Arial, sans-serif;
             background-color: #f0f2f5;
         }
 
-        /* BANDEAU SUPÉRIEUR */
+        
         .header-banner {
             height: 80px;
             background: linear-gradient(135deg, #4169E1 0%, #2a47a3 100%);
@@ -32,7 +32,7 @@
             background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px;
         }
 
-        /* PANNEAU LATÉRAL */
+        
         #sidebar {
             position: absolute; top: 80px; bottom: 50px; left: 0;
             width: 340px; background-color: #f8f9fa;
@@ -41,7 +41,7 @@
             text-align: justify;
         }
 
-        /* BOITES MODERNES */
+        
         .modern-box {
             background: white; padding: 15px; border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
@@ -50,7 +50,7 @@
         }
         .modern-box:hover { opacity: 1; box-shadow: 0 8px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
 
-        /* GESTIONNAIRE DE COUCHES */
+        
         .layer-list-title { font-size: 1.1rem; color: #4169E1; font-weight: bold; margin: 20px 0 10px 5px; }
         .layer-item {
             padding: 12px 10px; border-bottom: 1px solid #eee;
@@ -63,17 +63,17 @@
         .layer-details { display: none; padding: 15px 5px 5px 30px; font-size: 0.85rem; color: #555; }
         .layer-details.active { display: block; }
 
-        /* SLIDER SANS CONFLIT */
+        
         .opacity-slider-container { margin-bottom: 10px; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #4169E1; }
 
-        /* LA CARTE */
+        
         #map { position: absolute; top: 80px; bottom: 50px; left: 340px; right: 0; }
 
-        /* LÉGENDE */
+        
         .legend.modern-box { max-height: 250px; overflow-y: auto; background: rgba(255, 255, 255, 0.95); width: 220px; z-index: 1000; }
 
-        /* BANDEAU INFÉRIEUR */
+        
         .footer-banner {
             height: 50px; background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
             position: absolute; bottom: 0; width: 100%;
@@ -82,7 +82,7 @@
             z-index: 1100; font-size: 0.7rem; color: #444;
         }
 
-        /* OUTILS LEAFLET AJUSTÉS */
+        
         .leaflet-control-coords {
             background: rgba(255,255,255,0.9); padding: 4px 8px; font-family: monospace;
             border-radius: 4px; border: 1px solid #ccc; margin-right: 10px !important;
@@ -129,37 +129,22 @@
     </footer>
 
     <script>
-        /* 1. INITIALISATION CARTE */
-        //il faut définir la projection pour la carte et les coordonnées
-        // const en JS c'est une variable qui enregistre des adresses de contenu
-        // du coup on peut pas modifier après coup comme avec let ou en python
-        // ma_varaible = 2 ca c pas possible avec const
-        // new ca creer une nouvelle instance de projection pour Leaflet (L)
-        // le CRS ont l'a trouvé ici https://gist.github.com/blemoine/e6045ed93b3d90a52891?permalink_comment_id=3015607#gistcomment-3015607
-        // L.Prok.CRS on l'a trouvé ici : https://kartena.github.io/Proj4Leaflet/
+        
         const lambert93 = new L.Proj.CRS('EPSG:2154', '+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs');
-        //on prefere utiliser const que var map, car var c'est plus recommandé
         const map = L.map('map', {
             attributionControl: true // Important pour citer les sources
-        }).setView([48.857, 2.341], 12);
-        // même structure que votre code, 1 c'est le lien vers le fond de plan, 2 c'est les attributions qui apparaissent en bas à droite https://leafletjs.com/reference.html#tilelayer 
+        }).setView([48.857, 2.341], 12);https://leafletjs.com/reference.html#tilelayer 
         const baseLayers = {
             "OpenStreetMap": L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map),
             "ESRI Imagerie": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' }),
             "ESRI Gris": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' })
         };
-        // le control layer c'est le petit menu qui sert à basculer entre les couches, ici les fonds de plan
         L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
 
 
-        /* 2. GESTION DES MARQUEURS */
-        //on a choisit pour les marqueurs :
-        // 1. placer un marqueur initial au point zero de paris
+        
         var marker = L.marker([48.85340407009002, 2.348788491757153]).addTo(map);
-        marker.bindPopup("Point zero de Paris").openPopup();
-        // 2. quand l'user clic sur la carte il place un marqueur avec les attribut de l'entité
-        // 3. La recherche d'adresse créer un marqueur
-        // 4. Donc si il y a déjà un marqueur il l'efface (if currentMarker est True alors il supprime) CurrentMarker si il vaut Null alors il vaut False en JS https://developer.mozilla.org/en-US/docs/Glossary/Falsy
+        marker.bindPopup("Point zero de Paris").openPopup();False en JS https://developer.mozilla.org/en-US/docs/Glossary/Falsy
         let currentMarker = null;
         function updateMarker(latlng, label) {
             if (currentMarker) map.removeLayer(currentMarker);
@@ -170,12 +155,7 @@
             updateMarker(e.latlng, `Point sélectionné<br>Lat: ${e.latlng.lat.toFixed(4)}, Lon: ${e.latlng.lng.toFixed(4)}`);
         });
 
-        /* 3. COUCHES WMS */
-        //on utilise L.tileLayer.wms pour appelé les données dans geoserver, mais avec une nuance, au lieu
-        // de ce fatiguer à écrire dans un dictionnaire (object en js) la liste
-        // pour plus de clarté on a mit une variable LayerName provenant de sa fonction
-        //aisi quand on appel createWMS on lui donne le layer de overlaysData
-        // on a remarqué qu'on avait pas besoin de préciser le style avec le wms
+        
         function createWms(layerName) {
             return L.tileLayer.wms("http://localhost:8080/geoserver/IPAS/wms", {
                 layers: layerName, format: "image/png", transparent: true, version: "1.3.0"
@@ -234,20 +214,9 @@
         ];
 
 
-        /* 4. OUTILS TECHNIQUES */
-        //https://leafletjs.com/reference.html#control-scale
+        
         L.control.scale({ position: 'bottomleft' }).addTo(map);
         
-        // Pour avoir les coordonnées de la souris on a commencé par
-        // https://github.com/edihasaj/leaflet-coord-projection/blob/master/coord-projection.js
-        // mais ca ne marchait pas
-        //https://leafletjs.com/reference.html#control
-        // c'est une petite boite avec un truc dynamique
-        // contrairement à python on peut stocker une référence dans const pour le rappeler après
-        // onAdd vient de leaflet https://leafletjs.com/reference.html#layer-addto
-        // il va appeler coords et placer dedans dynamiquement la sortie de function
-        // la fonction a été généré par IA d'après le github de edihasaj
-        // On a demandé à l'IA de garder le strict nécéssaire car son code était trop long et complexe a intégrer. 
         const coords = L.control({ position: 'bottomright' });
         coords.onAdd = function() {
             this._div = L.DomUtil.create('div', 'leaflet-control-coords');
@@ -261,24 +230,13 @@
 
 
 
-        /* 5. LÉGENDE */
-        // C'est la partie du code où nous avons eu le plus de difficulté.
-        // Après de multiple tentative nous sommes partie sur la génération automatique de légende de géoserver.
-        // Pour la placer avec la même technique que coords
-        // https://leafletjs.com/examples/choropleth/
-        // cette partie vient de leaflet
+        
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function() {
             this._div = L.DomUtil.create('div', 'legend modern-box');
             this.update();
             return this._div;
-        };
-        // https://docs.geoserver.org/main/en/user/services/wms/get_legend_graphic/index.html
-        // exemple 
-        // http://localhost:8080/geoserver/IPAS/wms?REQUEST=GetLegendGraphic&VERSION=1.3.0&FORMAT=image/png&LAYER=IPAS:IPAS
-        // on a donc prit ce lien pour le placer dans le control legend, et il affiche la légende de chaque (la boucle for c'est .forEach https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach) couche déjà présent dans la map
-        // avec hasLayer de https://leafletjs.com/reference.html#map-haslayer
-        // structure de la fonction a été généré par IA
+        };https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach) couche déjà présent dans la map
         legend.update = function() {
             let content = "<strong>Légende</strong><hr style='border:0; border-top:1px solid #eee; margin:5px 0;'>";
             let hasL = false;
@@ -292,35 +250,23 @@
         };
         legend.addTo(map);
 
-        /* 6. GESTIONNAIRE DE COUCHES */
-       // Cette partie gère la liste des couches WMS dans la sidebar :
-        // - affichage de la liste
-        // - activation / désactivation des couches
-        // - réglage de l’opacité
-        // - réorganisation par glisser-déposer
-        // On n’utilise PAS le L.control.layers de Leaflet ici, car on veut
-        // un contrôle beaucoup plus riche (description, slider, légende, ordre)
+        
 
-        // On récupère le conteneur HTML (du html dans js dans du html...) dans lequel on va injecter les couches
         const listContainer = document.getElementById('layer-list-container');
-        // Cette fonction reconstruit entièrement la liste des couches
-        // Elle est appelée :
-        // - au chargement
-        // - après chaque interaction (toggle, opacité, drag)
         function renderLayers() {
             listContainer.innerHTML = '';
-            // On parcourt toutes les couches définies dans overlaysData
+
             overlaysData.forEach((item, idx) => {
-               // Création du bloc principal de la couche
-               // généré par ia
+    
+    
                 const div = document.createElement('div');
                 div.className = 'layer-item';
                 div.draggable = true;
                 div.dataset.index = idx;
-                // HTML interne de chaque couche (généré par IA):
-                // - checkbox pour activer/désactiver
-                // - flèche pour ouvrir la description
-                // - slider d’opacité
+    
+    
+    
+    
                 div.innerHTML = `
                     <div class="layer-header">
                         <label>
@@ -352,17 +298,17 @@
                         </div>
                     </div>
                 `;
-                /* ----- GESTION DU DRAG & DROP ----- */
-                // Quand on commence à déplacer une couche
+                
+    
                 div.addEventListener('dragstart', (e) => { 
                     if (e.target.tagName === 'INPUT') return e.preventDefault();
                     div.classList.add('dragging'); 
                 });
-                // Quand on lâche la couche
+    
                 div.addEventListener('dragend', () => div.classList.remove('dragging'));
-                 // Autorise le drop
+    
                 div.addEventListener('dragover', e => e.preventDefault());
-                // Quand on dépose une couche sur une autre
+    
                 div.addEventListener('drop', e => {
                     const dragging = document.querySelector('.dragging');
                     if (!dragging) return;
@@ -375,34 +321,22 @@
 
                     refreshLayers();
                 });
-                // On ajoute la couche à la sidebar
+    
                 listContainer.appendChild(div);
             });
         }
-        // Active ou désactive une couche sur la carte avec leaflet 
-        // haslayer on l'a vu c'est la couche actif si elle il y est pas alors
-        // elle est remove sinon elle est affiché
-        // on a trouvé les fonctions dans https://leafletjs.com/reference.html
         function toggleLayer(idx) {
             const l = overlaysData[idx].layer;
             map.hasLayer(l) ? map.removeLayer(l) : l.addTo(map);
             refreshLayers();
         }
-        // change l'opacité https://leafletjs.com/reference.html#marker-setopacity
         function changeOpacity(idx, val) { overlaysData[idx].layer.setOpacity(val); }
-        // Ouvre ou ferme la description d’une couche
-        // https://leafletjs.com/reference.html#domevent-stoppropagation
-        // https://stackoverflow.com/questions/18608509/stop-propagation-of-click-event-in-leaflet
         function toggleAcc(idx, e) {
             e.stopPropagation();
-            // script js pure généré par IA pour faire tourner la flèche
+
             document.getElementById(`acc-${idx}`).classList.toggle('active');
             e.target.classList.toggle('rotate');
         }
-        // Met à jour :
-        // - l’ordre des couches (z-index) généré par IA
-        // - la liste dans la sidebar (renderLayers)
-        // - la légende
         function refreshLayers() {
             [...overlaysData].reverse().forEach((o, i) => {
                 if(map.hasLayer(o.layer)) o.layer.setZIndex(1000 + i);
@@ -411,24 +345,22 @@
             legend.update();
         }
 
-        /* 7. RECHERCHE */
-        // async c'est une fonction asynchronisé, vu que JS c'est pour gérer des pages web,
-        // (await) ça va attendre que le site solicité renvoit sa réponse, en attendant il continue d'executer le reste du code
+        
         
         async function searchAddress() {
-            // on prend l'adresse entrée
+
             const q = document.getElementById('address-input').value;
-            // c'est la meme logique que currentlayer, !q teste si c'est falsy
-            // https://developer.mozilla.org/en-US/docs/Glossary/Falsy
-            // si c'est faux alors il le transforme en True (!) puis il arrête la fonction avec return
+
+
+
             if(!q) return;
-            // try comme python, c'est pour éviter que le code s'arrête avec les erreurs fatal en cas 
-            // d'erreur avec le serveur interroger 
+
+
             try {
-                // await c'est la fameuse fonctionnalité de JS qui va attendre la réponse du serveur
+    
                 const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`);
                 const d = await r.json();
-                // on retest au cas où d n'est pas vide
+    
                 if(d.features.length > 0) {
                     const c = d.features[0].geometry.coordinates; // on a tester et vu que le [0] c les coordonnées
                     const latlng = [c[1], c[0]]; //on prend x y
@@ -438,7 +370,6 @@
             } catch (e) { console.error(e); } //si il y a une erreur avec https://api-adresse.data.gouv.fr renvoyé par await alors il renvoit l'erreur
         }
 
-        // initialisation
         overlaysData.find(o => o.name === "Seine").layer.addTo(map);
         refreshLayers();
     </script>
