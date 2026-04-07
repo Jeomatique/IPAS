@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Mission Maritime</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css"/>
+  <script src="https://js.arcgis.com/4.30/"></script>
+  <style>
+    :root{--gold:#c8a84b;--teal:#00c8b4;--bg-full:rgba(4,12,22,.97);}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body,html{width:100%;height:100%;overflow:hidden;background:#020d18;font-family:'Courier New',monospace;}
+    #viewDiv{position:absolute;inset:0;}
+    #labelCanvas{position:absolute;inset:0;pointer-events:none;z-index:10;}
+    #toast{position:absolute;top:80px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;padding:8px 18px;border-radius:3px;font-weight:bold;font-size:.8rem;letter-spacing:1px;opacity:0;transition:opacity .4s;z-index:200;pointer-events:none;white-space:nowrap;}
+    #toast.show{opacity:1;}
+    #coords-hud{position:absolute;top:14px;right:14px;z-index:50;color:var(--teal);font-size:.7rem;letter-spacing:.05em;text-align:right;opacity:.75;pointer-events:none;text-shadow:0 0 8px rgba(0,200,180,.5);}
+    #bottom-ui{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;align-items:center;gap:10px;user-select:none;}
+    #ctrl-bar{display:flex;gap:8px;align-items:center;background:var(--bg-full);border:1px solid rgba(255,255,255,.08);padding:5px 14px;border-radius:3px;}
+    #ctrl-bar button{background:transparent;border:none;color:rgba(255,255,255,.55);font-family:'Courier New',monospace;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:3px 8px;transition:color .2s;}
+    #ctrl-bar button:hover{color:var(--gold);}
+    #ctrl-bar .sep{width:1px;height:14px;background:rgba(255,255,255,.12);}
+    #stages-row{display:flex;align-items:center;}
+    .arrow-btn{background:var(--bg-full);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:1.2rem;cursor:pointer;width:28px;height:80px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s;flex-shrink:0;}
+    .arrow-btn:hover{color:var(--gold);background:rgba(200,168,75,.08);}
+    .arrow-btn.hidden{visibility:hidden;pointer-events:none;}
+    #stages-viewport{display:flex;gap:6px;overflow:hidden;}
+    .stage-rect{width:120px;height:80px;background:rgba(0,0,0,.50);border:1px solid rgba(255,255,255,.07);cursor:pointer;position:relative;overflow:hidden;transition:border-color .25s,background .25s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .stage-rect:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22);}
+    .stage-rect.active{border-color:rgba(255,255,255,.35);}
+    .stage-rect.done{border-color:rgba(0,200,180,.3);}
+    .stage-label{font-size:1.6rem;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.15);transition:color .2s;position:relative;z-index:2;pointer-events:none;}
+    .stage-rect:hover .stage-label{color:rgba(255,255,255,.5);}
+    .stage-rect.active .stage-label{color:rgba(255,255,255,.9);}
+    .stage-rect.done .stage-label{color:rgba(0,200,180,.6);}
+    .stage-progress{position:absolute;bottom:0;left:0;height:100%;width:0%;background:rgba(255,255,255,.10);z-index:1;transition:width .08s linear;}
+    .stage-dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--teal);opacity:0;transition:opacity .3s;z-index:3;}
+    .stage-rect.active .stage-dot{opacity:1;}
+    #basemap-btn{position:absolute;bottom:24px;right:24px;z-index:100;width:48px;height:48px;border-radius:12px;background:rgba(4,12,22,.88);border:1px solid rgba(255,255,255,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);transition:border-color .2s,transform .15s;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+    #basemap-btn:hover{border-color:rgba(200,168,75,.5);transform:translateY(-1px);}
+    #basemap-btn svg{width:22px;height:22px;opacity:.7;transition:opacity .2s;}
+    #basemap-btn:hover svg{opacity:1;}
+    #basemap-panel{position:absolute;bottom:82px;right:24px;z-index:100;display:flex;flex-direction:column;gap:8px;opacity:0;pointer-events:none;transform:translateY(10px);transition:opacity .22s,transform .22s;}
+    #basemap-panel.open{opacity:1;pointer-events:all;transform:translateY(0);}
+    .bm-card{width:160px;height:52px;background:rgba(4,12,22,.92);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px;padding:0 12px;backdrop-filter:blur(12px);transition:border-color .18s,background .18s,transform .15s;box-shadow:0 2px 14px rgba(0,0,0,.4);}
+    .bm-card:hover{border-color:rgba(200,168,75,.4);background:rgba(10,24,40,.97);transform:translateX(-4px);}
+    .bm-card.active{border-color:rgba(200,168,75,.7);background:rgba(200,168,75,.08);}
+    .bm-thumb{width:32px;height:32px;border-radius:6px;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.1);}
+    .bm-thumb img{width:100%;height:100%;object-fit:cover;}
+    .bm-name{font-family:'Courier New',monospace;font-size:.68rem;letter-spacing:.06em;color:rgba(255,255,255,.7);line-height:1.3;text-transform:uppercase;}
+    .bm-card.active .bm-name{color:var(--gold);}
+  </style>
+</head>
+<body>
+
+<div id="toast">Message</div>
+<div id="viewDiv"></div>
+<canvas id="labelCanvas"></canvas>
+<div id="coords-hud">LAT — | LON —<br>CAP —°</div>
+
+<button id="basemap-btn" onclick="toggleBasemapPanel()" title="Changer le fond de carte">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--teal)">
+    <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+  </svg>
+</button>
+<div id="basemap-panel">
+  <div class="bm-card active" onclick="setBasemap('satellite',this)">
+    <div class="bm-thumb"><img src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/2/1/2" alt=""/></div>
+    <div class="bm-name">Satellite<br><span style="opacity:.5;font-size:.6rem">ESRI Imagery</span></div>
+  </div>
+  <div class="bm-card" onclick="setBasemap('watercolor',this)">
+    <div class="bm-thumb"><img src="https://tiles.stadiamaps.com/tiles/stamen_watercolor/2/1/2.jpg" alt=""/></div>
+    <div class="bm-name">Aquarelle<br><span style="opacity:.5;font-size:.6rem">Stamen / Stadia</span></div>
+  </div>
+  <div class="bm-card" onclick="setBasemap('physical',this)">
+    <div class="bm-thumb"><img src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/2/1/2" alt=""/></div>
+    <div class="bm-name">Physique<br><span style="opacity:.5;font-size:.6rem">ESRI World</span></div>
+  </div>
+</div>
+
+<div id="bottom-ui">
+  <div id="ctrl-bar">
+    <button id="btnPlay" onclick="ctrlPlay()">▶ Lancer</button>
+    <div class="sep"></div>
+    <button onclick="ctrlReset()">↺ Reset</button>
+  </div>
+  <div id="stages-row">
+    <button class="arrow-btn hidden" id="arrowLeft"  onclick="shiftView(-1)">&#8249;</button>
+    <div id="stages-viewport"></div>
+    <button class="arrow-btn hidden" id="arrowRight" onclick="shiftView(1)">&#8250;</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG — modifier ces valeurs
+// ═══════════════════════════════════════════════
+const API_KEY          = "";
+const MODEL_URL        = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/boat.glb";
+const GEOJSON_URL      = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/a.geojson";
+const TEXT_GEOJSON_URL = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/t.geojson";
+const IMG_BASE_URL     = "https://raw.githubusercontent.com/Jeomatique/IPAS/main/";  // racine du repo
+
+const STEP_DURATION_S  = 20;
+const TRAIL_MAX_KM     = 200;
+const PAUSE_BETWEEN_S  = 3;
+const MAX_VISIBLE      = 3;
+const TRAIL_SEGS       = 16;
+const CHAR_RATIO       = 0.44;   // longueur d'une lettre = CHAR_RATIO × taille_m (en km/1000)
+const DEBUG_LABELS     = false;  // true = affiche cadres rouges de vérification sur les images
+
+// ═══════════════════════════════════════════════
+require([
+  "esri/config","esri/Map","esri/views/SceneView",
+  "esri/Graphic","esri/layers/GraphicsLayer",
+  "esri/geometry/Point","esri/geometry/Polyline",
+  "esri/layers/WebTileLayer","esri/Basemap"
+], (esriConfig, Map, SceneView, Graphic, GraphicsLayer, Point, Polyline, WebTileLayer, Basemap) => {
+
+  if (API_KEY) esriConfig.apiKey = API_KEY;
+
+  // ── Carte ──────────────────────────────────────────────
+  const map = new Map({ basemap:"satellite", ground:"world-elevation" });
+
+  // ── Basemap switcher ───────────────────────────────────
+  const BASEMAPS = {
+    satellite:  () => "satellite",
+    watercolor: () => new Basemap({ baseLayers:[new WebTileLayer({ urlTemplate:"https://tiles.stadiamaps.com/tiles/stamen_watercolor/{level}/{col}/{row}.jpg" })], title:"Watercolor" }),
+    physical:   () => new Basemap({ baseLayers:[new WebTileLayer({ urlTemplate:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{level}/{row}/{col}" })], title:"Physical" })
+  };
+  let bmOpen = false;
+  window.toggleBasemapPanel = () => { bmOpen=!bmOpen; document.getElementById('basemap-panel').classList.toggle('open',bmOpen); };
+  document.addEventListener('click', e => { if(!e.target.closest('#basemap-btn')&&!e.target.closest('#basemap-panel')){ bmOpen=false; document.getElementById('basemap-panel').classList.remove('open'); } });
+  window.setBasemap = (key, card) => { map.basemap=BASEMAPS[key](); document.querySelectorAll('.bm-card').forEach(c=>c.classList.remove('active')); card.classList.add('active'); bmOpen=false; document.getElementById('basemap-panel').classList.remove('open'); };
+
+  // ── SceneView ──────────────────────────────────────────
+  const view = new SceneView({
+    container: "viewDiv", map,
+    camera: { position:[5.928, 42.5, 800000], tilt:40 },
+    qualityProfile: "high",
+    environment: {
+      atmosphere: { quality:"high" },
+      lighting: { date:new Date("2024-06-15T10:00:00"), directShadowsEnabled:true }
+    }
+  });
+
+  const trailLayer = new GraphicsLayer({ elevationInfo:{ mode:"absolute-height" } });
+  const boatLayer  = new GraphicsLayer({ elevationInfo:{ mode:"absolute-height" } });
+  map.addMany([trailLayer, boatLayer]);
+
+  // ═══════════════════════════════════════════════
+  //  CANVAS OVERLAY — images géoréférencées PNG/PGW
+  //  Déclaré ici mais initialisé dans view.when()
+  //  pour éviter tout appel prématuré avant que
+  //  les fonctions soient définies.
+  // ═══════════════════════════════════════════════
+  const canvas = document.getElementById('labelCanvas');
+  const ctx    = canvas.getContext('2d');
+
+  function syncCanvasSize() {
+    // Synchroniser la taille du canvas avec la vue
+    canvas.width  = view.width  || window.innerWidth;
+    canvas.height = view.height || window.innerHeight;
+  }
+
+  // drawLabels : efface le canvas et redessine toutes les images actives.
+  // Appelé à chaque frame d'animation ET à chaque mouvement de caméra.
+  function drawLabels() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const tf of textFeats) {
+      if (tf.opacity <= 0.005) continue;
+      if (!tf.img || !tf.img.complete || !tf.corners) continue;
+      drawOneImage(tf.img, tf.corners, tf.opacity);
+    }
+  }
+
+  // Transformation affine 3 points : projette l'image sur le globe.
+  // corners = { tl, tr, bl, br } en WGS84 lon/lat
+  function drawOneImage(img, corners, opacity) {
+    const mk = c => new Point({ longitude:c.lon, latitude:c.lat, spatialReference:{wkid:4326} });
+    const tl = view.toScreen(mk(corners.tl));
+    const tr = view.toScreen(mk(corners.tr));
+    const bl = view.toScreen(mk(corners.bl));
+    if (!tl || !tr || !bl) return;  // hors écran ou derrière le globe
+
+    const W = img.naturalWidth, H = img.naturalHeight;
+    if (!W || !H) return;
+
+    // Matrice affine :
+    //   src [0,0]→tl   [W,0]→tr   [0,H]→bl
+    //   a=(tr.x-tl.x)/W   b=(tr.y-tl.y)/W
+    //   c=(bl.x-tl.x)/H   d=(bl.y-tl.y)/H
+    //   e=tl.x             f=tl.y
+    const a = (tr.x-tl.x)/W,  b = (tr.y-tl.y)/W;
+    const c = (bl.x-tl.x)/H,  d = (bl.y-tl.y)/H;
+    const e = tl.x,            f = tl.y;
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.setTransform(a, b, c, d, e, f);
+    ctx.drawImage(img, 0, 0, W, H);
+
+    if (DEBUG_LABELS) {
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth   = 3 / Math.max(Math.abs(a), Math.abs(d), 0.0001);
+      ctx.strokeRect(0, 0, W, H);
+    }
+    ctx.restore();
+
+    if (DEBUG_LABELS) {
+      const br = view.toScreen(mk(corners.br));
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.fillStyle = 'yellow'; ctx.font = '11px monospace';
+      ctx.fillText(`TL(${tl.x|0},${tl.y|0})`, tl.x+2, tl.y-4);
+      if (br) ctx.fillText(`BR(${br.x|0},${br.y|0})`, br.x+2, br.y+12);
+      ctx.restore();
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  //  LECTURE PGW (6 lignes)
+  //  A  = pixel size X    D = rotation Y
+  //  B  = rotation X      E = pixel size Y (négatif)
+  //  C  = X top-left      F = Y top-left
+  // ═══════════════════════════════════════════════
+  async function fetchPGW(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('PGW HTTP ' + res.status);
+    const lines = (await res.text()).trim().split(/\r?\n/);
+    return {
+      A: parseFloat(lines[0]),
+      D: parseFloat(lines[1]),
+      B: parseFloat(lines[2]),
+      E: parseFloat(lines[3]),
+      C: parseFloat(lines[4]),
+      F: parseFloat(lines[5])
+    };
+  }
+
+  // Calcule les 4 coins géographiques depuis le PGW + dimensions image
+  function pgwCorners(pgw, W, H) {
+    return {
+      tl: { lon: pgw.C,               lat: pgw.F               },
+      tr: { lon: pgw.C + W*pgw.A,     lat: pgw.F + W*pgw.D     },
+      bl: { lon: pgw.C + H*pgw.B,     lat: pgw.F + H*pgw.E     },
+      br: { lon: pgw.C + W*pgw.A + H*pgw.B, lat: pgw.F + W*pgw.D + H*pgw.E }
+    };
+  }
+
+  // ═══════════════════════════════════════════════
+  //  GÉOMÉTRIE
+  // ═══════════════════════════════════════════════
+  function hav(a, b) {
+    const R=6371, r=Math.PI/180;
+    const dLat=(b.lat-a.lat)*r, dLon=(b.lon-a.lon)*r;
+    const s=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
+  }
+  function havArr(a, b) { return hav({lon:a[0],lat:a[1]},{lon:b[0],lat:b[1]}); }
+  function brng(a, b) {
+    const r=Math.PI/180, dLon=(b.lon-a.lon)*r;
+    const y=Math.sin(dLon)*Math.cos(b.lat*r);
+    const x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos(dLon);
+    return ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+  }
+
+  // ═══════════════════════════════════════════════
+  //  DONNÉES
+  // ═══════════════════════════════════════════════
+  let stages=[], textFeats=[], stagesReady=false;
+
+  async function loadAll() {
+    // Chargement parallèle des deux GeoJSON
+    const [aRes, tRes] = await Promise.allSettled([
+      fetch(GEOJSON_URL).then(r=>{ if(!r.ok) throw r.status; return r.json(); }),
+      fetch(TEXT_GEOJSON_URL).then(r=>{ if(!r.ok) throw r.status; return r.json(); })
+    ]);
+
+    // ── a.geojson → étapes ──────────────────────
+    const aGeo = aRes.status==='fulfilled' ? aRes.value : makeDemoA();
+    if (aRes.status!=='fulfilled') msg('⚠ a.geojson inaccessible — démo');
+
+    const byEtape={}, boatByEtape={};
+    for (const feat of aGeo.features) {
+      const e=feat.properties.etape, bt=feat.properties.boat_t ?? 800;
+      if (!byEtape[e]) { byEtape[e]=[]; boatByEtape[e]=bt; }
+      const geo=feat.geometry;
+      if (geo.type==='LineString') byEtape[e].push(...geo.coordinates);
+      else if (geo.type==='MultiLineString') for (const p of geo.coordinates) byEtape[e].push(...p);
+    }
+    stages = Object.keys(byEtape).map(Number).sort((a,b)=>a-b).map(num => {
+      const raw=byEtape[num], bt=boatByEtape[num]??800;
+      const cumDist=[0];
+      for (let i=0;i<raw.length-1;i++) cumDist.push(cumDist[cumDist.length-1]+havArr(raw[i],raw[i+1]));
+      return { etape:num, coords:raw, cumDist, totalDist:cumDist[cumDist.length-1], boatHeight:bt, boatZ:bt/100*42 };
+    });
+
+    // ── t.geojson → labels + chargement PNG/PGW ─
+    if (tRes.status==='fulfilled') {
+      const imgPromises = [];
+
+      for (const feat of tRes.value.features) {
+        const text  = feat.properties.text || feat.properties.texte || '';
+        const taille= feat.properties.taille_m ?? 5000;
+        const etape = feat.properties.etape ?? 1;
+        if (!text) continue;
+
+        const geo=feat.geometry;
+        let coords=[];
+        if (geo.type==='LineString') coords=geo.coordinates;
+        else if (geo.type==='MultiLineString') coords=geo.coordinates.flat();
+        if (coords.length<2) continue;
+
+        // Distances cumulées de l'entité
+        const cumD=[0];
+        for (let i=0;i<coords.length-1;i++) cumD.push(cumD[cumD.length-1]+havArr(coords[i],coords[i+1]));
+        const featDist = cumD[cumD.length-1];  // km
+
+        // Midpoint géodésique
+        const midKm=featDist/2;
+        let midLon=coords[0][0], midLat=coords[0][1];
+        for (let i=0;i<coords.length-1;i++) {
+          if (cumD[i]<=midKm && cumD[i+1]>=midKm) {
+            const t=(midKm-cumD[i])/(cumD[i+1]-cumD[i]);
+            midLon=coords[i][0]+(coords[i+1][0]-coords[i][0])*t;
+            midLat=coords[i][1]+(coords[i+1][1]-coords[i][1])*t;
+            break;
+          }
+        }
+
+        // Distance depuis début de l'étape
+        const st = stages.find(s=>s.etape===etape);
+        let distStart=0;
+        if (st) {
+          let minD=Infinity;
+          for (let i=0;i<st.coords.length;i++) {
+            const d=havArr(st.coords[i], coords[0]);
+            if (d<minD) { minD=d; distStart=st.cumDist[i]; }
+          }
+        }
+        const distMid = distStart + featDist/2;
+
+        // Durée de fondue : word_len / vitesse / 2
+        const wordLenKm = text.length * CHAR_RATIO * taille / 1000;
+        const speed     = st ? (st.totalDist/STEP_DURATION_S) : 1;
+        const fadeKm    = Math.max(0.05, Math.min(speed*8, wordLenKm/2));
+
+        const tf = {
+          text, taille_m:taille, etape,
+          midLon, midLat,
+          fadeStartKm: distMid,
+          fadeEndKm:   distMid + fadeKm,
+          opacity: 0,
+          img:     null,
+          corners: null
+        };
+        textFeats.push(tf);
+
+        // Chargement PNG + PGW en parallèle
+        const fname  = `${etape}_${text}`;
+        const pngUrl = IMG_BASE_URL + encodeURIComponent(fname) + '.png';
+        const pgwUrl = IMG_BASE_URL + encodeURIComponent(fname) + '.pgw';
+
+        const p = (async () => {
+          try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            const loaded = new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
+            img.src = pngUrl;
+
+            const pgw = await fetchPGW(pgwUrl);
+            await loaded;
+
+            tf.img     = img;
+            tf.corners = pgwCorners(pgw, img.naturalWidth, img.naturalHeight);
+            console.log(`✓ "${text}" — coins:`, tf.corners);
+          } catch(err) {
+            console.warn(`✗ "${fname}" non chargé:`, err);
+          }
+        })();
+        imgPromises.push(p);
+      }
+
+      // Attendre que TOUTES les images soient chargées avant de continuer
+      await Promise.allSettled(imgPromises);
+      console.log(`Images: ${textFeats.filter(t=>t.img).length}/${textFeats.length} chargées`);
+    }
+
+    // Tout est prêt
+    stagesReady = true;
+    buildUI();
+    initScene();
+  }
+
+  // ── Opacités labels ────────────────────────────────────
+  function updateLabelOpacities(etape, distKm) {
+    for (const tf of textFeats) {
+      if (tf.etape !== etape) continue;
+      if      (distKm < tf.fadeStartKm) tf.opacity = 0;
+      else if (distKm >= tf.fadeEndKm)  tf.opacity = 1;
+      else tf.opacity = (distKm-tf.fadeStartKm)/(tf.fadeEndKm-tf.fadeStartKm);
+    }
+  }
+
+  function resetLabels(etape) {
+    for (const tf of textFeats) { if (tf.etape===etape) tf.opacity=0; }
+    drawLabels();
+  }
+
+  // ═══════════════════════════════════════════════
+  //  BATEAU
+  // ═══════════════════════════════════════════════
+  let boatGfx = null;
+  function placeBoat(lon, lat, head, bh, bz) {
+    if (boatGfx) boatLayer.remove(boatGfx);
+    boatGfx = new Graphic({
+      geometry: new Point({ longitude:lon, latitude:lat, z:bz??0, spatialReference:{wkid:4326} }),
+      symbol: { type:"point-3d", symbolLayers:[{ type:"object", resource:{href:MODEL_URL}, height:bh??800, heading:head+180, anchor:"center" }] }
+    });
+    boatLayer.add(boatGfx);
+  }
+
+  // ═══════════════════════════════════════════════
+  //  SILLAGE
+  // ═══════════════════════════════════════════════
+  let trailPts=[], trailGfxList=[];
+
+  function interpolatePos(st, distKm) {
+    const { coords, cumDist } = st;
+    for (let i=0;i<cumDist.length-1;i++) {
+      if (cumDist[i]<=distKm && cumDist[i+1]>=distKm) {
+        const seg=cumDist[i+1]-cumDist[i];
+        const t=seg>0?(distKm-cumDist[i])/seg:0;
+        const a={lon:coords[i][0],lat:coords[i][1]};
+        const b={lon:coords[i+1][0],lat:coords[i+1][1]};
+        return { lon:a.lon+(b.lon-a.lon)*t, lat:a.lat+(b.lat-a.lat)*t, heading:brng(a,b) };
+      }
+    }
+    const l=coords[coords.length-1];
+    return { lon:l[0], lat:l[1], heading:0 };
+  }
+
+  function getVertsInRange(st, distA, distB) {
+    const { coords, cumDist } = st;
+    const pts = [];
+    const posA = interpolatePos(st, distA);
+    pts.push({ lon:posA.lon, lat:posA.lat });
+    for (let i=0;i<coords.length;i++) {
+      if (cumDist[i]>distA && cumDist[i]<distB)
+        pts.push({ lon:coords[i][0], lat:coords[i][1] });
+    }
+    const posB = interpolatePos(st, distB);
+    pts.push({ lon:posB.lon, lat:posB.lat });
+    return pts;
+  }
+
+  function updateTrail() {
+    for (const g of trailGfxList) trailLayer.remove(g);
+    trailGfxList=[];
+    if (trailPts.length<2) return;
+    const maxD=trailPts[trailPts.length-1].cumKm;
+    const keepFrom=Math.max(0, maxD-TRAIL_MAX_KM);
+    let si=0;
+    while (si<trailPts.length-1 && trailPts[si].cumKm<keepFrom) si++;
+    const vis=trailPts.slice(si);
+    if (vis.length<2) return;
+    const segSz=Math.max(1,Math.floor(vis.length/TRAIL_SEGS));
+    for (let s=0;s<TRAIL_SEGS;s++) {
+      const i0=s*segSz, i1=Math.min((s+1)*segSz+1,vis.length-1);
+      if (i1<=i0) continue;
+      const chunk=vis.slice(i0,i1+1);
+      if (chunk.length<2) continue;
+      const alpha=Math.pow((s+1)/TRAIL_SEGS, 1.3);
+      const g=new Graphic({
+        geometry: new Polyline({ paths:[chunk.map(p=>[p.lon,p.lat])], spatialReference:{wkid:4326} }),
+        symbol: { type:"simple-line", color:[180,10,10,alpha], width:3+alpha*4, cap:"round", join:"round" }
+      });
+      trailLayer.add(g); trailGfxList.push(g);
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  //  BOUCLE D'ANIMATION
+  // ═══════════════════════════════════════════════
+  let currentStage=0, isPlaying=false;
+  let distCovered=0, prevDist=0, lastTs=null, rafId=null, pauseTimer=null;
+
+  function animLoop(ts) {
+    if (!isPlaying) return;
+    if (!lastTs) lastTs=ts;
+    const dt=(ts-lastTs)/1000; lastTs=ts;
+
+    const st=stages[currentStage];
+    const speed=st.totalDist/STEP_DURATION_S;
+    prevDist=distCovered;
+    distCovered=Math.min(st.totalDist, distCovered+speed*dt);
+
+    // Bateau
+    const pos=interpolatePos(st, distCovered);
+    placeBoat(pos.lon, pos.lat, pos.heading, st.boatHeight, st.boatZ);
+
+    // Sillage — tous les vertices entre prevDist et distCovered
+    const newPts=getVertsInRange(st, prevDist, distCovered);
+    const baseCum=trailPts.length>0 ? trailPts[trailPts.length-1].cumKm : 0;
+    let acc=0;
+    for (let i=0;i<newPts.length;i++) {
+      if (i>0) acc+=hav({lon:newPts[i-1].lon,lat:newPts[i-1].lat},{lon:newPts[i].lon,lat:newPts[i].lat});
+      if (i===0 && trailPts.length>0) continue;  // éviter doublon
+      trailPts.push({ lon:newPts[i].lon, lat:newPts[i].lat, cumKm:baseCum+acc });
+    }
+    updateTrail();
+
+    // Labels : mettre à jour opacités PUIS redessiner le canvas (chaque frame)
+    updateLabelOpacities(st.etape, distCovered);
+    drawLabels();
+
+    // HUD coords
+    document.getElementById('coords-hud').innerHTML=
+      `LAT ${pos.lat.toFixed(4)}° | LON ${pos.lon.toFixed(4)}°<br>CAP ${Math.round(pos.heading)}°`;
+
+    // Progression du rectangle d'étape
+    const pct=distCovered/st.totalDist;
+    const rect=document.querySelector(`.stage-rect[data-idx="${currentStage}"]`);
+    if (rect) rect.querySelector('.stage-progress').style.width=(pct*100)+'%';
+
+    if (distCovered>=st.totalDist) {
+      isPlaying=false;
+      if (rect) { rect.classList.remove('active'); rect.classList.add('done'); rect.querySelector('.stage-progress').style.width='100%'; }
+      if (currentStage<stages.length-1) {
+        msg(`Étape ${st.etape} terminée — prochaine dans ${PAUSE_BETWEEN_S}s`);
+        pauseTimer=setTimeout(()=>{ currentStage++; startStage(currentStage); }, PAUSE_BETWEEN_S*1000);
+      } else {
+        msg('Destination finale atteinte !');
+        document.getElementById('btnPlay').textContent='▶ Rejouer';
+      }
+      return;
+    }
+    rafId=requestAnimationFrame(animLoop);
+  }
+
+  function startStage(idx) {
+    if (idx>=stages.length) return;
+    currentStage=idx; distCovered=0; prevDist=0;
+    trailPts=[]; for (const g of trailGfxList) trailLayer.remove(g); trailGfxList=[];
+    lastTs=null; isPlaying=true;
+    resetLabels(stages[idx].etape);
+    updateRectHighlight(idx); autoScrollToStage(idx);
+    const start=stages[idx].coords[0];
+    view.goTo({ target:[start[0],start[1]], zoom:10, tilt:50 }, { duration:1200 });
+    document.getElementById('btnPlay').textContent='⏸ Pause';
+    rafId=requestAnimationFrame(animLoop);
+  }
+
+  function initScene() {
+    if (!stages.length) return;
+    const p=stages[0].coords[0];
+    placeBoat(p[0], p[1], 0, stages[0].boatHeight, stages[0].boatZ);
+    view.goTo({ target:[p[0],p[1]], zoom:10, tilt:45 }, { duration:1500 });
+    document.getElementById('btnPlay').textContent='▶ Lancer';
+  }
+
+  // ═══════════════════════════════════════════════
+  //  CONTRÔLES
+  // ═══════════════════════════════════════════════
+  window.ctrlPlay = function() {
+    if (!stagesReady) return;
+    if (!isPlaying && distCovered>=(stages[currentStage]?.totalDist||0) && currentStage>=stages.length-1) { ctrlReset(); startStage(0); return; }
+    if (!isPlaying && distCovered===0 && trailPts.length===0) { startStage(currentStage); return; }
+    isPlaying=!isPlaying;
+    if (isPlaying) { lastTs=null; document.getElementById('btnPlay').textContent='⏸ Pause'; rafId=requestAnimationFrame(animLoop); }
+    else           { cancelAnimationFrame(rafId); clearTimeout(pauseTimer); document.getElementById('btnPlay').textContent='▶ Continuer'; }
+  };
+
+  window.ctrlReset = function() {
+    cancelAnimationFrame(rafId); clearTimeout(pauseTimer);
+    isPlaying=false; currentStage=0; distCovered=0; prevDist=0;
+    trailPts=[]; for (const g of trailGfxList) trailLayer.remove(g); trailGfxList=[];
+    lastTs=null;
+    document.getElementById('btnPlay').textContent='▶ Lancer';
+    document.querySelectorAll('.stage-rect').forEach(r=>{ r.classList.remove('active','done'); r.querySelector('.stage-progress').style.width='0%'; });
+    for (const tf of textFeats) tf.opacity=0;
+    drawLabels();
+    if (stages.length) { const p=stages[0].coords[0]; placeBoat(p[0],p[1],0,stages[0].boatHeight,stages[0].boatZ); view.goTo({target:[p[0],p[1]],zoom:10,tilt:45},{duration:1200}); }
+    viewOffset=0; renderViewport();
+  };
+
+  window.launchStage = function(idx) {
+    cancelAnimationFrame(rafId); clearTimeout(pauseTimer);
+    isPlaying=false;
+    document.querySelectorAll('.stage-rect').forEach(r=>{ if(parseInt(r.dataset.idx)>idx){ r.classList.remove('done'); r.querySelector('.stage-progress').style.width='0%'; } });
+    distCovered=0; prevDist=0; trailPts=[]; for (const g of trailGfxList) trailLayer.remove(g); trailGfxList=[];
+    startStage(idx);
+  };
+
+  // ═══════════════════════════════════════════════
+  //  UI — Rectangles d'étapes
+  // ═══════════════════════════════════════════════
+  let viewOffset=0;
+  function buildUI()   { viewOffset=0; renderViewport(); }
+  function renderViewport() {
+    const vp=document.getElementById('stages-viewport');
+    vp.innerHTML='';
+    const total=stages.length, vis=Math.min(MAX_VISIBLE,total);
+    vp.style.width=`calc(${vis}*120px + ${Math.max(0,vis-1)}*6px)`;
+    for (let i=0;i<vis;i++) {
+      const idx=viewOffset+i; if(idx>=total) break;
+      const div=document.createElement('div');
+      div.className='stage-rect'+(idx===currentStage?' active':'');
+      div.dataset.idx=idx;
+      div.innerHTML=`<div class="stage-progress"></div><div class="stage-label">${stages[idx].etape}</div><div class="stage-dot"></div>`;
+      div.addEventListener('click',()=>launchStage(idx));
+      vp.appendChild(div);
+    }
+    const arL=document.getElementById('arrowLeft'), arR=document.getElementById('arrowRight');
+    if (total<=MAX_VISIBLE) { arL.classList.add('hidden'); arR.classList.add('hidden'); }
+    else { arL.classList.toggle('hidden',viewOffset===0); arR.classList.toggle('hidden',viewOffset+MAX_VISIBLE>=total); }
+  }
+  window.shiftView = function(dir) {
+    viewOffset=Math.max(0,Math.min(Math.max(0,stages.length-MAX_VISIBLE), viewOffset+dir));
+    renderViewport(); updateRectHighlight(currentStage);
+  };
+  function updateRectHighlight(idx) { document.querySelectorAll('.stage-rect').forEach(r=>r.classList.toggle('active',parseInt(r.dataset.idx)===idx)); }
+  function autoScrollToStage(idx)   { if(idx<viewOffset||idx>=viewOffset+MAX_VISIBLE){ viewOffset=Math.max(0,Math.min(stages.length-MAX_VISIBLE,idx)); renderViewport(); updateRectHighlight(idx); } }
+  function msg(text) { const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),3200); }
+
+  // ═══════════════════════════════════════════════
+  //  DÉMO (si GitHub inaccessible)
+  // ═══════════════════════════════════════════════
+  function makeDemoA() {
+    const e1=[], e2=[];
+    for (let i=0;i<=80;i++) { const t=i/80; e1.push([5.924+(5.1-5.924)*t, 43.122+(43.3-43.122)*t]); }
+    for (let i=0;i<=100;i++) { const t=i/100; e2.push([5.1+(-5.483-5.1)*t, 43.3+(35.983-43.3)*t]); }
+    return { type:"FeatureCollection", features:[
+      { type:"Feature", properties:{etape:1,boat_t:5000}, geometry:{type:"LineString",coordinates:e1} },
+      { type:"Feature", properties:{etape:2,boat_t:12000}, geometry:{type:"LineString",coordinates:e2} }
+    ]};
+  }
+
+  // ═══════════════════════════════════════════════
+  //  DÉMARRAGE — tout dans view.when() pour
+  //  garantir que la vue est prête avant tout appel
+  //  à view.width / view.height / view.toScreen()
+  // ═══════════════════════════════════════════════
+  view.when(() => {
+    // 1. Synchroniser la taille du canvas maintenant que la vue est prête
+    syncCanvasSize();
+
+    // 2. Re-synchroniser si la vue est redimensionnée
+    view.watch(['width','height'], syncCanvasSize);
+
+    // 3. Redessiner les images à chaque mouvement de caméra
+    view.watch('camera', drawLabels);
+
+    // 4. Charger les données
+    msg("Chargement des données...");
+    loadAll();
+  });
+
+});
+</script>
+</body>
+</html>
